@@ -64,14 +64,13 @@ export const metadata: Metadata = {
     site: "@elitehubng",
   },
   icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon-16.png", sizes: "16x16", type: "image/png" },
-      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
-    ],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
-    shortcut: "/favicon.ico",
-  },
+  icon: [
+    { url: "/logo.png" }, // This puts your logo in the browser tab
+    { url: "/logo.png", sizes: "32x32", type: "image/png" },
+  ],
+  apple: [{ url: "/logo.png", sizes: "180x180" }],
+  shortcut: "/logo.png",
+},
   manifest: "/manifest.json",
   alternates: { canonical: SITE_URL },
   verification: {

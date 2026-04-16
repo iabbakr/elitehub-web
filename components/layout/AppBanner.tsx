@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { X, Smartphone } from "lucide-react";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/utils";
 
@@ -38,9 +39,15 @@ export default function AppBanner() {
   return (
     <div className="relative bg-navy-deep border-b border-gold-muted z-[60]">
       <div className="flex items-center gap-3 px-4 py-2.5">
-        {/* App icon */}
-        <div className="shrink-0 w-9 h-9 rounded-xl bg-gold-DEFAULT flex items-center justify-center shadow-gold">
-          <span className="font-display font-bold text-navy-DEFAULT text-sm">E</span>
+        {/* App icon — Now using your logo image */}
+        <div className="shrink-0 w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-[0_2px_8px_rgba(201,168,76,0.3)] overflow-hidden">
+          <Image
+            src="/logo.png"
+            alt="EliteHub NG"
+            width={36}
+            height={36}
+            className="w-full h-full object-contain p-1"
+          />
         </div>
 
         <div className="flex-1 min-w-0">
