@@ -51,16 +51,16 @@ export default function Header() {
         <div className="section py-3 flex items-center gap-4">
           {/* Logo — uses actual icon image */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-[0_2px_8px_rgba(201,168,76,0.3)] shrink-0">
-              <Image
-                src="/icon-192.png"
-                alt="EliteHub NG"
-                width={32}
-                height={32}
-                className="w-full h-full object-cover"
-                priority
-              />
-            </div>
+            <div className="w-8 h-8 rounded-lg overflow-hidden bg-white shadow-[0_2px_8px_rgba(201,168,76,0.3)] shrink-0 flex items-center justify-center">
+  <Image
+    src="/logo.png" 
+    alt="EliteHub NG"
+    width={32}
+    height={32}
+    className="w-full h-full object-contain"
+    priority
+  />
+</div>
             <div className="hidden sm:block">
               <span className="font-display font-bold text-white text-lg tracking-tight">
                 EliteHub<span className="text-gold-DEFAULT"> NG</span>
@@ -132,16 +132,17 @@ export default function Header() {
             </button>
 
             {/* Get App — FIX: border-transparent default, bg appears on hover */}
-            <Link
-              href="#download"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full
-                text-gold-DEFAULT text-sm font-semibold font-body
-                border border-transparent
-                hover:bg-gold-DEFAULT hover:text-[#0B2E33] hover:border-gold-DEFAULT
-                transition-all duration-200"
-            >
-              Get App
-            </Link>
+            {/* Get App — Updated with Gold Border */}
+<Link
+  href="#download"
+  className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full
+    text-gold text-sm font-semibold font-body
+    border border-gold-DEFAULT
+    hover:bg-gold hover:text-white
+    transition-all duration-200 shadow-[0_0_10px_rgba(201,168,76,0.1)]"
+>
+  Get App
+</Link>
 
             {/* Mobile menu toggle */}
             <button

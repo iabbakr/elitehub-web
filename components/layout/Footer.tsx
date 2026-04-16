@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Smartphone, Apple } from "lucide-react";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/utils";
 
@@ -75,24 +76,36 @@ export default function Footer() {
 
       {/* Links grid */}
       <div className="section py-14 grid grid-cols-2 md:grid-cols-4 gap-8">
-        {/* Brand */}
+        {/* Brand - UPDATED WITH LOGO IMAGE */}
         <div className="col-span-2 md:col-span-1">
           <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-9 h-9 rounded-xl bg-gold-DEFAULT flex items-center justify-center shadow-gold shrink-0">
-              <span className="font-display font-bold text-navy-DEFAULT">E</span>
+            {/* Logo Icon with White Background */}
+            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-[0_2px_8px_rgba(201,168,76,0.3)] shrink-0 overflow-hidden">
+              <Image
+                src="/logo.png"
+                alt="EliteHub NG"
+                width={36}
+                height={36}
+                className="w-full h-full object-contain p-1"
+              />
             </div>
+            {/* Logo Text */}
             <span className="font-display font-bold text-white text-xl">
               Elite<span className="text-gold-DEFAULT">Hub</span>
               <span className="text-white/50 ml-1 text-base font-body font-normal">NG</span>
             </span>
           </div>
+          
           <p className="text-white/50 text-sm leading-relaxed font-body">
             Nigeria&apos;s trusted marketplace — connecting buyers, sellers and service providers with escrow-protected payments.
           </p>
+          
           {/* Trust badges */}
           <div className="flex gap-2 mt-5 flex-wrap">
             {["🔒 Escrow Safe", "✅ Verified Sellers", "⚡ Fast Delivery"].map((b) => (
-              <span key={b} className="px-2.5 py-1 rounded-full bg-white/8 border border-white/12 text-[11px] text-white/60 font-body">{b}</span>
+              <span key={b} className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-white/60 font-body">
+                {b}
+              </span>
             ))}
           </div>
         </div>
