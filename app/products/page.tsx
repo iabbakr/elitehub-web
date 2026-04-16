@@ -46,16 +46,21 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
 async function ProductResults({ filters }: { filters: Partial<FilterState> & { limit?: number } }) {
   const { products, hasMore, nextCursor, total } = await fetchProducts(filters);
+  
+  // Create a safe variable for TypeScript to satisfy the "possibly undefined" check
+  const safeTotal = total ?? 0;
 
   return (
     <div>
       {/* Result count */}
       <div className="flex items-center justify-between mb-5">
         <p className="text-navy-DEFAULT/60 text-sm font-body">
-          {total > 0 ? (
+          {safeTotal > 0 ? (
             <>
-              <span className="font-semibold text-navy-DEFAULT">{total.toLocaleString()}</span>
-              {" "}product{total !== 1 ? "s" : ""}
+              <span className="font-semibold text-navy-DEFAULT">
+                {safeTotal.toLocaleString()}
+              </span>
+              {" "}product{safeTotal !== 1 ? "s" : ""}
               {filters.search && (
                 <> for &ldquo;<span className="text-gold-DEFAULT font-semibold">{filters.search}</span>&rdquo;</>
               )}
