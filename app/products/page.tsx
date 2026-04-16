@@ -46,8 +46,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
 async function ProductResults({ filters }: { filters: Partial<FilterState> & { limit?: number } }) {
   const { products, hasMore, nextCursor, total } = await fetchProducts(filters);
-  
-  // Create a safe variable for TypeScript to satisfy the "possibly undefined" check
+
   const safeTotal = total ?? 0;
 
   return (
@@ -93,16 +92,16 @@ export default async function ProductsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
   const filters: Partial<FilterState> & { limit?: number } = {
-    category:  sp.category as string | undefined,
+    category:   sp.category as string | undefined,
     subcategory: sp.subcategory as string | undefined,
-    search:    sp.search as string | undefined,
-    state:     sp.state as string | undefined,
-    city:      sp.city as string | undefined,
-    condition: sp.condition as string | undefined,
-    sort:      (sp.sort as FilterState["sort"]) || "newest",
-    minPrice:  sp.minPrice ? Number(sp.minPrice) : undefined,
-    maxPrice:  sp.maxPrice ? Number(sp.maxPrice) : undefined,
-    limit:     24,
+    search:     sp.search as string | undefined,
+    state:      sp.state as string | undefined,
+    city:       sp.city as string | undefined,
+    condition:  sp.condition as string | undefined,
+    sort:       (sp.sort as FilterState["sort"]) || "newest",
+    minPrice:   sp.minPrice ? Number(sp.minPrice) : undefined,
+    maxPrice:   sp.maxPrice ? Number(sp.maxPrice) : undefined,
+    limit:      24,
   };
 
   const pageTitle = filters.search
@@ -144,24 +143,32 @@ export default async function ProductsPage({ searchParams }: PageProps) {
 
       {/* Body */}
       <div className="section py-8">
-        <div className="flex gap-8">
-          {/* Filters sidebar */}
-          <Suspense>
-            <ProductFilters />
-          </Suspense>
+        <div className="flex gap-6 lg:gap-8">
 
-          {/* Results */}
-          <div className="flex-1 min-w-0">
-            {/* Mobile filter row */}
+          {/*
+           * Desktop sidebar — wrapped in hidden lg:block so the ProductFilters
+           * component's mobile button never appears as a flex sibling on small screens,
+           * which was pushing the product grid and breaking the 2-column layout.
+           */}
+          <div className="hidden lg:block shrink-0">
+            <Suspense>
+              <ProductFilters />
+            </Suspense>
+          </div>
+
+          {/* Results column — takes all available width on mobile */}
+          <div className="flex-1 min-w-0 w-full">
+
+            {/* Mobile: filter button + sort label */}
             <div className="lg:hidden flex items-center gap-3 mb-5">
               <Suspense>
                 <ProductFilters />
               </Suspense>
               {filters.sort && (
-                <span className="text-xs text-navy-DEFAULT/50 font-body">
-                  Sorted by: <strong>{
-                    { newest: "Newest", price_asc: "Price ↑", price_desc: "Price ↓", popular: "Popular" }[filters.sort]
-                  }</strong>
+                <span className="text-xs text-navy-DEFAULT/50 font-body ml-auto">
+                  <strong>
+                    {{ newest: "Newest", price_asc: "Price ↑", price_desc: "Price ↓", popular: "Popular" }[filters.sort]}
+                  </strong>
                 </span>
               )}
             </div>
