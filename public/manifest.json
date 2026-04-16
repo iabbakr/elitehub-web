@@ -1,0 +1,17 @@
+{
+  "name": "EliteHub NG",
+  "short_name": "EliteHub",
+  "description": "Nigeria's trusted marketplace",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B2E33",
+  "theme_color": "#0B2E33",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["shopping", "business"],
+  "lang": "en-NG",
+  "dir": "ltr"
+}

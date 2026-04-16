@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Google Fonts ──────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Mono:wght@400;500&display=swap');
+
+/* ── CSS Custom Properties ─────────────────────────────────────────────────── */
+:root {
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  --navy: #0B2E33;
+  --navy-mid: #144D54;
+  --navy-deep: #071E22;
+  --navy-light: #1A4A52;
+  --gold: #C9A84C;
+  --gold-muted: rgba(201, 168, 76, 0.35);
+  --gold-faint: rgba(201, 168, 76, 0.12);
+  --gold-light: #D4B96A;
+
+  --page-bg: #F8F7F4;
+  --card-bg: #FFFFFF;
+  --border: rgba(11, 46, 51, 0.1);
+  --text: #0B2E33;
+  --text-secondary: rgba(11, 46, 51, 0.6);
+}
+
+/* ── Base Styles ────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: var(--page-bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--gold-muted); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--gold); }
+
+  /* Selection */
+  ::selection { background: var(--gold-faint); color: var(--navy); }
+
+  /* Focus Ring */
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ── Utility Classes ────────────────────────────────────────────────────────── */
+@layer utilities {
+  .font-display { font-family: var(--font-display); }
+  .font-body    { font-family: var(--font-body); }
+  .font-mono    { font-family: var(--font-mono); }
+
+  .gold-text    { color: var(--gold); }
+  .navy-text    { color: var(--navy); }
+
+  .gold-border  { border-color: var(--gold-muted); }
+  .gold-bg      { background-color: var(--gold-faint); }
+
+  .text-balance { text-wrap: balance; }
+
+  /* Shimmer skeleton */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(201,168,76,0.06) 25%,
+      rgba(201,168,76,0.15) 50%,
+      rgba(201,168,76,0.06) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Grain texture overlay */
+  .grain::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.3;
+  }
+
+  /* Gold accent bar */
+  .gold-accent {
+    position: relative;
+    padding-left: 16px;
+  }
+  .gold-accent::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 70%;
+    background: var(--gold);
+    border-radius: 2px;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+}
+
+/* ── Component Styles ───────────────────────────────────────────────────────── */
+@layer components {
+  /* Gold CTA button */
+  .btn-gold {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-navy bg-gold transition-all duration-200;
+    font-family: var(--font-body);
+  }
+  .btn-gold:hover { @apply bg-gold-light shadow-gold-lg scale-[1.02]; }
+  .btn-gold:active { @apply scale-[0.98]; }
+
+  /* Navy outline button */
+  .btn-navy {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-white bg-navy border border-white/20 transition-all duration-200;
+    font-family: var(--font-body);
+  }
+  .btn-navy:hover { @apply bg-navy-mid; }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-semibold border border-gold-muted text-gold bg-gold-faint transition-all duration-200;
+    font-family: var(--font-body);
+  }
+  .btn-ghost:hover { @apply border-gold shadow-gold; }
+
+  /* Card base */
+  .card {
+    @apply bg-white rounded-2xl border border-[rgba(11,46,51,0.08)] overflow-hidden transition-all duration-300;
+  }
+  .card:hover { @apply shadow-gold -translate-y-0.5; }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase;
+  }
+  .badge-gold { @apply badge bg-gold-faint text-gold border border-gold-muted; }
+  .badge-navy { @apply badge bg-navy text-white; }
+  .badge-success { @apply badge bg-emerald-50 text-emerald-700 border border-emerald-200; }
+  .badge-error { @apply badge bg-red-50 text-red-600 border border-red-200; }
+
+  /* Section container */
+  .section {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Input field */
+  .input {
+    @apply w-full rounded-xl border border-[rgba(11,46,51,0.15)] bg-white px-4 py-3 text-navy placeholder:text-navy/40 outline-none transition-all duration-200 font-body;
+  }
+  .input:focus { @apply border-gold ring-2 ring-gold-faint; }
+
+  /* Section heading */
+  .section-title {
+    @apply font-display text-2xl sm:text-3xl font-bold text-navy gold-accent;
+  }
+}
+
+/* ── Custom Animations & Grids ─────────────────────────────────────────────── */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter { animation: pageIn 0.35s ease-out; }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 640px)  { .product-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; } }
+@media (min-width: 1024px) { .product-grid { grid-template-columns: repeat(4, 1fr); gap: 20px; } }
+@media (min-width: 1280px) { .product-grid { grid-template-columns: repeat(5, 1fr); } }
