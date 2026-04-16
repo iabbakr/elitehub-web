@@ -59,7 +59,7 @@ export default function AppBanner() {
           href={storeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="shrink-0 px-4 py-1.5 rounded-full bg-gold-DEFAULT text-navy-DEFAULT text-[12px] font-bold hover:bg-gold-light transition-all font-body"
+          className="shrink-0 px-4 py-1.5 rounded-full bg-gold text-navy-DEFAULT text-[12px] font-bold hover:bg-gold-light transition-all font-body"
         >
           {storeLabel}
         </a>
