@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Menu, X, ShoppingCart, Heart, Package, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Search, Menu, X, ShoppingCart, Heart, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AppGateModal from "@/components/ui/AppGateModal";
 
@@ -39,21 +40,30 @@ export default function Header() {
       <header
         className={cn(
           "sticky top-0 z-50 transition-all duration-300",
+          // FIX: use bg-[#0B2E33] — bg-navy-DEFAULT is not valid Tailwind;
+          // navy.DEFAULT maps to bg-navy, but either way explicit hex is safer here
           scrolled
-            ? "bg-navy-DEFAULT/95 backdrop-blur-md shadow-navy border-b border-white/10"
-            : "bg-navy-DEFAULT"
+            ? "bg-[#0B2E33]/95 backdrop-blur-md shadow-[0_4px_24px_rgba(11,46,51,0.3)] border-b border-white/10"
+            : "bg-[#0B2E33]"
         )}
       >
         {/* Top bar */}
         <div className="section py-3 flex items-center gap-4">
-          {/* Logo */}
+          {/* Logo — uses actual icon image */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="w-8 h-8 rounded-lg bg-gold-DEFAULT flex items-center justify-center shadow-gold">
-              <span className="font-display font-bold text-navy-DEFAULT text-sm">E</span>
+            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-[0_2px_8px_rgba(201,168,76,0.3)] shrink-0">
+              <Image
+                src="/icon-192.png"
+                alt="EliteHub NG"
+                width={32}
+                height={32}
+                className="w-full h-full object-cover"
+                priority
+              />
             </div>
             <div className="hidden sm:block">
               <span className="font-display font-bold text-white text-lg tracking-tight">
-                Elite<span className="text-gold-DEFAULT">Hub</span>
+                EliteHub<span className="text-gold-DEFAULT"> NG</span>
               </span>
               <span className="block text-[9px] text-white/50 tracking-widest uppercase -mt-0.5 font-body">
                 Nigeria
@@ -121,10 +131,14 @@ export default function Header() {
               <Heart size={20} />
             </button>
 
-            {/* Get the app */}
+            {/* Get App — FIX: border-transparent default, bg appears on hover */}
             <Link
               href="#download"
-              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gold-DEFAULT text-navy-DEFAULT text-sm font-semibold hover:bg-gold-light transition-all hover:shadow-gold font-body"
+              className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full
+                text-gold-DEFAULT text-sm font-semibold font-body
+                border border-transparent
+                hover:bg-gold-DEFAULT hover:text-[#0B2E33] hover:border-gold-DEFAULT
+                transition-all duration-200"
             >
               Get App
             </Link>
@@ -141,7 +155,7 @@ export default function Header() {
         </div>
 
         {/* Category quick-links bar */}
-        <div className="border-t border-white/8">
+        <div className="border-t border-white/[0.08]">
           <div className="section">
             <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2 text-xs">
               {[
@@ -170,7 +184,7 @@ export default function Header() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="lg:hidden border-t border-white/10 bg-navy-deep/98 backdrop-blur-xl">
+          <div className="lg:hidden border-t border-white/10 bg-[#071E22]/98 backdrop-blur-xl">
             <div className="section py-4 space-y-4">
               {/* Mobile search */}
               <form onSubmit={handleSearch}>
@@ -219,7 +233,7 @@ export default function Header() {
               <a
                 href="#download"
                 onClick={() => setMobileOpen(false)}
-                className="btn-gold w-full text-center py-3.5 rounded-xl font-semibold"
+                className="btn-gold w-full text-center py-3.5 rounded-xl font-semibold block"
               >
                 Download Free App
               </a>

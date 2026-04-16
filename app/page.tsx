@@ -62,7 +62,7 @@ export default async function HomePage() {
         <div className="section relative py-20 md:py-28 grid md:grid-cols-2 gap-12 items-center">
           {/* Left copy */}
           <div className="text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-faint border border-gold-muted text-gold-DEFAULT text-sm font-semibold mb-6 font-body">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-faint border border-gold-muted text-white  text-sm font-semibold mb-6 font-body">
               <TrendingUp size={14} />
               Nigeria&apos;s #1 Trusted Marketplace
             </div>
@@ -104,7 +104,7 @@ export default async function HomePage() {
                 { num: "100K+", label: "Buyers" },
               ].map((s) => (
                 <div key={s.label} className="text-center">
-                  <p className="font-display font-bold text-2xl text-gold-DEFAULT">{s.num}</p>
+                  <p className="font-display font-bold text-2xl text-gold">{s.num}</p>
                   <p className="text-white/50 text-xs mt-0.5 font-body">{s.label}</p>
                 </div>
               ))}
@@ -138,7 +138,7 @@ export default async function HomePage() {
                 <p className="text-navy-DEFAULT text-xs font-semibold font-body">🔒 Escrow Protected</p>
                 <p className="text-navy-DEFAULT/50 text-[11px] font-body">Order #EH284912</p>
               </div>
-              <div className="absolute top-12 left-2 bg-navy-DEFAULT rounded-2xl shadow-lg px-4 py-2.5 border border-white/10">
+              <div className="absolute top-12 left-2 bg-emerald-400 rounded-2xl shadow-lg px-4 py-2.5 border border-white/10">
                 <p className="text-gold-DEFAULT text-xs font-bold font-body">📦 Out for Delivery</p>
               </div>
             </div>
