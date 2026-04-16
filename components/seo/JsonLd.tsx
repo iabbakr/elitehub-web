@@ -7,7 +7,7 @@ export function JsonLdOrganization() {
     "@type": "Organization",
     name: "EliteHub NG",
     url: "https://elitehubng.com",
-    logo: "https://elitehubng.com/logo.png",
+    logo: "https://elitehubng.com/icon-192.png",
     description: "Nigeria's trusted marketplace for buying and selling online",
     contactPoint: {
       "@type": "ContactPoint",
