@@ -5,7 +5,7 @@ import { formatCategory } from "@/lib/products";
 import ProductGrid from "@/components/products/ProductGrid";
 import ProductFilters from "@/components/products/ProductFilters";
 import ProductSearch from "@/components/products/ProductSearch";
-import LoadMoreButton from "@/components/products/LoadMoreButton";
+import ClientLoadMore from "@/components/products/ClientLoadMore";
 import { ProductGridSkeleton } from "@/components/ui/Skeleton";
 import { FilterState } from "@/types";
 
@@ -44,9 +44,24 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
   };
 }
 
-async function ProductResults({ filters }: { filters: Partial<FilterState> & { limit?: number } }) {
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function ProductResults({
+  filters,
+}: {
+  filters: Partial<FilterState> & { limit?: number };
+}) {
   const { products, hasMore, nextCursor, total } = await fetchProducts(filters);
 
+  // Shuffle products for variety on every ISR cycle
+  const shuffled = shuffleArray(products);
   const safeTotal = total ?? 0;
 
   return (
@@ -61,10 +76,21 @@ async function ProductResults({ filters }: { filters: Partial<FilterState> & { l
               </span>
               {" "}product{safeTotal !== 1 ? "s" : ""}
               {filters.search && (
-                <> for &ldquo;<span className="text-gold-DEFAULT font-semibold">{filters.search}</span>&rdquo;</>
+                <>
+                  {" "}for &ldquo;
+                  <span className="text-gold-DEFAULT font-semibold">
+                    {filters.search}
+                  </span>
+                  &rdquo;
+                </>
               )}
               {filters.category && (
-                <> in <span className="text-gold-DEFAULT font-semibold">{formatCategory(filters.category)}</span></>
+                <>
+                  {" "}in{" "}
+                  <span className="text-gold-DEFAULT font-semibold">
+                    {formatCategory(filters.category)}
+                  </span>
+                </>
               )}
             </>
           ) : (
@@ -73,16 +99,11 @@ async function ProductResults({ filters }: { filters: Partial<FilterState> & { l
         </p>
       </div>
 
-      <ProductGrid products={products} />
+      <ProductGrid products={shuffled} />
 
-      {/* Pagination */}
+      {/* Client-side load more — appends products without page reload */}
       {hasMore && nextCursor && (
-        <div className="flex justify-center mt-10">
-          <LoadMoreButton
-            currentFilters={filters}
-            nextCursor={nextCursor}
-          />
-        </div>
+        <ClientLoadMore initialNextCursor={nextCursor} filters={filters} />
       )}
     </div>
   );
@@ -92,16 +113,16 @@ export default async function ProductsPage({ searchParams }: PageProps) {
   const sp = await searchParams;
 
   const filters: Partial<FilterState> & { limit?: number } = {
-    category:   sp.category as string | undefined,
+    category:    sp.category as string | undefined,
     subcategory: sp.subcategory as string | undefined,
-    search:     sp.search as string | undefined,
-    state:      sp.state as string | undefined,
-    city:       sp.city as string | undefined,
-    condition:  sp.condition as string | undefined,
-    sort:       (sp.sort as FilterState["sort"]) || "newest",
-    minPrice:   sp.minPrice ? Number(sp.minPrice) : undefined,
-    maxPrice:   sp.maxPrice ? Number(sp.maxPrice) : undefined,
-    limit:      24,
+    search:      sp.search as string | undefined,
+    state:       sp.state as string | undefined,
+    city:        sp.city as string | undefined,
+    condition:   sp.condition as string | undefined,
+    sort:        (sp.sort as FilterState["sort"]) || "newest",
+    minPrice:    sp.minPrice ? Number(sp.minPrice) : undefined,
+    maxPrice:    sp.maxPrice ? Number(sp.maxPrice) : undefined,
+    limit:       24,
   };
 
   const pageTitle = filters.search
@@ -117,13 +138,22 @@ export default async function ProductsPage({ searchParams }: PageProps) {
         <div className="section py-6">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs text-navy-DEFAULT/50 mb-3 font-body">
-            <a href="/" className="hover:text-gold-DEFAULT transition-colors">Home</a>
+            <a href="/" className="hover:text-gold-DEFAULT transition-colors">
+              Home
+            </a>
             <span>/</span>
             {filters.category ? (
               <>
-                <a href="/products" className="hover:text-gold-DEFAULT transition-colors">Products</a>
+                <a
+                  href="/products"
+                  className="hover:text-gold-DEFAULT transition-colors"
+                >
+                  Products
+                </a>
                 <span>/</span>
-                <span className="text-navy-DEFAULT font-medium">{formatCategory(filters.category)}</span>
+                <span className="text-navy-DEFAULT font-medium">
+                  {formatCategory(filters.category)}
+                </span>
               </>
             ) : (
               <span className="text-navy-DEFAULT font-medium">Products</span>
@@ -144,21 +174,15 @@ export default async function ProductsPage({ searchParams }: PageProps) {
       {/* Body */}
       <div className="section py-8">
         <div className="flex gap-6 lg:gap-8">
-
-          {/*
-           * Desktop sidebar — wrapped in hidden lg:block so the ProductFilters
-           * component's mobile button never appears as a flex sibling on small screens,
-           * which was pushing the product grid and breaking the 2-column layout.
-           */}
+          {/* Desktop sidebar */}
           <div className="hidden lg:block shrink-0">
             <Suspense>
               <ProductFilters />
             </Suspense>
           </div>
 
-          {/* Results column — takes all available width on mobile */}
+          {/* Results column */}
           <div className="flex-1 min-w-0 w-full">
-
             {/* Mobile: filter button + sort label */}
             <div className="lg:hidden flex items-center gap-3 mb-5">
               <Suspense>
@@ -167,7 +191,14 @@ export default async function ProductsPage({ searchParams }: PageProps) {
               {filters.sort && (
                 <span className="text-xs text-navy-DEFAULT/50 font-body ml-auto">
                   <strong>
-                    {{ newest: "Newest", price_asc: "Price ↑", price_desc: "Price ↓", popular: "Popular" }[filters.sort]}
+                    {
+                      {
+                        newest: "Newest",
+                        price_asc: "Price ↑",
+                        price_desc: "Price ↓",
+                        popular: "Popular",
+                      }[filters.sort]
+                    }
                   </strong>
                 </span>
               )}
