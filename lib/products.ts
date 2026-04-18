@@ -10,7 +10,12 @@ const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   "https://elitehub-backend.onrender.com/api/v1";
 
-function buildQuery(filters: Partial<FilterState> & { limit?: number; lastCreatedAt?: number | null }): string {
+function buildQuery(
+  filters: Partial<FilterState> & {
+    limit?: number;
+    lastCreatedAt?: number | null;
+  }
+): string {
   const params = new URLSearchParams();
   if (filters.category) params.set("category", filters.category);
   if (filters.subcategory) params.set("subcategory", filters.subcategory);
@@ -22,12 +27,26 @@ function buildQuery(filters: Partial<FilterState> & { limit?: number; lastCreate
   if (filters.condition) params.set("condition", filters.condition);
   if (filters.sort) params.set("sort", filters.sort);
   if (filters.limit) params.set("limit", String(filters.limit));
-  if (filters.lastCreatedAt) params.set("lastCreatedAt", String(filters.lastCreatedAt));
+  if (filters.lastCreatedAt)
+    params.set("lastCreatedAt", String(filters.lastCreatedAt));
   return params.toString();
 }
 
+/** Fisher-Yates shuffle — does NOT mutate the original array */
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export async function fetchProducts(
-  filters: Partial<FilterState> & { limit?: number; lastCreatedAt?: number | null } = {}
+  filters: Partial<FilterState> & {
+    limit?: number;
+    lastCreatedAt?: number | null;
+  } = {}
 ): Promise<ProductsResponse> {
   const opts = { limit: 24, ...filters };
   const qs = buildQuery(opts);
@@ -40,7 +59,7 @@ export async function fetchProducts(
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    // Normalize response — filter to only active products (pending review shouldn't show on web)
+    // Filter to active products only
     const products: Product[] = (data.products ?? []).filter(
       (p: Product) => !p.status || p.status === "active"
     );
@@ -70,17 +89,29 @@ export async function fetchProduct(productId: string): Promise<Product | null> {
   }
 }
 
+/**
+ * Fetches featured products and shuffles for variety.
+ * Fetches 2× the requested limit so the shuffle pool is larger.
+ */
 export async function fetchFeaturedProducts(limit = 12): Promise<Product[]> {
-  const { products } = await fetchProducts({ limit, sort: "popular" });
-  return products;
+  const fetchLimit = Math.min(limit * 2, 48);
+  const { products } = await fetchProducts({ limit: fetchLimit, sort: "popular" });
+  // Shuffle the full pool then take the requested slice
+  return shuffleArray(products).slice(0, limit);
 }
 
 export async function fetchRelatedProducts(
   product: Product,
   limit = 8
 ): Promise<Product[]> {
-  const { products } = await fetchProducts({ category: product.category, limit: limit + 1 });
-  return products.filter((p) => p.id !== product.id).slice(0, limit);
+  const { products } = await fetchProducts({
+    category: product.category,
+    limit: limit + 1,
+  });
+  return shuffleArray(products.filter((p) => p.id !== product.id)).slice(
+    0,
+    limit
+  );
 }
 
 // ── Image helpers (Cloudinary) ────────────────────────────────────────────────
@@ -118,5 +149,7 @@ export function getDiscountedPrice(price: number, discount?: number): number {
 }
 
 export function formatCategory(cat: string): string {
-  return cat.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return cat
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
