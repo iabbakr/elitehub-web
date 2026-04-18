@@ -48,7 +48,14 @@ export interface UserData {
   myReferralCode?:             string;
   subscriptionExpiresAt?:      number;
   isAvailable?:                boolean;
-  rcNumber?:                   string;
+  rcNumber?: string;
+  bankAccount?: {
+    accountName: string;
+    accountNumber: string;
+    bankName: string;
+    bankCode: string;
+    verified: boolean;
+  };                   
 }
 
 export interface SignUpPayload {
