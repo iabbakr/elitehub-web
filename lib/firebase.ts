@@ -1,10 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import {
-  getFirestore,
-  connectFirestoreEmulator,
-  Firestore,
-} from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getAuth, Auth } from "firebase/auth"; // 1. Add this import
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
@@ -15,35 +12,13 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
-// Singleton pattern — safe for Next.js
-let app: FirebaseApp;
-let db: Firestore;
-let storage: FirebaseStorage;
+// Singleton pattern
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-function getFirebaseApp(): FirebaseApp {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApp();
-  }
-  return app;
-}
+// 2. Initialize and export Auth
+export const auth: Auth = getAuth(app); 
 
-export function getDb(): Firestore {
-  if (!db) {
-    db = getFirestore(getFirebaseApp());
-    if (process.env.NODE_ENV === "development" && process.env.USE_EMULATOR === "true") {
-      connectFirestoreEmulator(db, "localhost", 8080);
-    }
-  }
-  return db;
-}
+export const db: Firestore = getFirestore(app);
+export const storage: FirebaseStorage = getStorage(app);
 
-export function getFirebaseStorage(): FirebaseStorage {
-  if (!storage) {
-    storage = getStorage(getFirebaseApp());
-  }
-  return storage;
-}
-
-export default getFirebaseApp;
+export default app;

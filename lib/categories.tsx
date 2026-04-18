@@ -1,0 +1,46 @@
+export const SELLER_CATEGORIES = [
+  { name: "Phones_Tablets",            label: "Phones & Tablets",       icon: "📱" },
+  { name: "Laptops_Computers",         label: "Laptops & Computers",    icon: "💻" },
+  { name: "TV_Audio_Gaming",           label: "TV, Audio & Gaming",     icon: "📺" },
+  { name: "Cameras_Optics",            label: "Cameras & Optics",       icon: "📷" },
+  { name: "Womens_Fashion",            label: "Women's Fashion",         icon: "👗" },
+  { name: "Mens_Fashion",              label: "Men's Fashion",           icon: "👔" },
+  { name: "Babies_Kids",               label: "Babies & Kids",          icon: "🍼" },
+  { name: "Beauty_Personal_Care",      label: "Beauty & Personal Care", icon: "💄" },
+  { name: "Home_Appliances",           label: "Home Appliances",        icon: "🏠" },
+  { name: "Furniture",                 label: "Furniture",              icon: "🛋️" },
+  { name: "Home_Decor",               label: "Home Decor",             icon: "🖼️" },
+  { name: "Kitchen_Dining",            label: "Kitchen & Dining",       icon: "🍳" },
+  { name: "Fruits_Vegetables",         label: "Fruits & Vegetables",    icon: "🥦" },
+  { name: "Meat_Fish_Poultry",         label: "Meat, Fish & Poultry",   icon: "🥩" },
+  { name: "Rice_Beans_Grains",         label: "Rice, Beans & Grains",   icon: "🌾" },
+  { name: "Beverages",                 label: "Beverages",              icon: "🥤" },
+  { name: "Packaged_Snacks_Condiments",label: "Snacks & Condiments",    icon: "🍪" },
+  { name: "Health_Medical",            label: "Health & Medical",       icon: "💊" },
+  { name: "Vehicles_Cars",             label: "Vehicles & Cars",        icon: "🚗" },
+  { name: "Motorcycles_Powersports",   label: "Motorcycles",            icon: "🏍️" },
+  { name: "Auto_Parts_Care",           label: "Auto Parts & Care",      icon: "🔧" },
+  { name: "Real_Estate",               label: "Real Estate",            icon: "🏢" },
+  { name: "Sports_Hobbies",            label: "Sports & Hobbies",       icon: "⚽" },
+  { name: "Garden_Outdoor",            label: "Garden & Outdoor",       icon: "🌿" },
+  { name: "Pets_Animals",              label: "Pets & Animals",         icon: "🐾" },
+  { name: "Other",                     label: "Other",                  icon: "📦" },
+] as const;
+
+export const SERVICE_CATEGORIES = [
+  { name: "Home_Repair_Maintenance",   label: "Home Repair",            icon: "🔧" },
+  { name: "Cleaning_Services",         label: "Cleaning",               icon: "🧹" },
+  { name: "Logistics_Transport",       label: "Logistics & Transport",  icon: "🚚" },
+  { name: "Events_Entertainment",      label: "Events & Entertainment", icon: "🎉" },
+  { name: "Tech_Gadgets_Repair",       label: "Tech & Gadget Repair",   icon: "💻" },
+  { name: "Automotive_Services",       label: "Automotive",             icon: "🚗" },
+  { name: "Education_Lessons",         label: "Tutors & Lessons",       icon: "📚" },
+  { name: "Health_Wellness",           label: "Health & Wellness",      icon: "💪" },
+  { name: "Business_Professional",     label: "Business & Legal",       icon: "💼" },
+  { name: "Personal_Services",         label: "Beauty & Personal",      icon: "✂️" },
+  { name: "Real_Estate_Services",      label: "Real Estate",            icon: "🏢" },
+  { name: "Construction_Fabrication",  label: "Construction",           icon: "🏗️" },
+] as const;
+
+export type SellerCategoryName   = typeof SELLER_CATEGORIES[number]["name"];
+export type ServiceCategoryName  = typeof SERVICE_CATEGORIES[number]["name"];
