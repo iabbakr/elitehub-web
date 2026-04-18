@@ -4,10 +4,11 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import AppBanner from "@/components/layout/AppBanner";
 import { JsonLdOrganization } from "@/components/seo/JsonLd";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 // ── SEO Metadata ──────────────────────────────────────────────────────────────
 
-const SITE_URL = "https://elitehubng.com";
+const SITE_URL  = "https://elitehubng.com";
 const SITE_NAME = "EliteHub NG";
 const DEFAULT_DESCRIPTION =
   "Nigeria's trusted marketplace. Buy and sell electronics, fashion, food, automobiles, and more — with escrow-protected payments and verified sellers.";
@@ -15,7 +16,7 @@ const DEFAULT_DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Nigeria's Trusted Marketplace`,
+    default:  `${SITE_NAME} — Nigeria's Trusted Marketplace`,
     template: `%s | ${SITE_NAME}`,
   },
   description: DEFAULT_DESCRIPTION,
@@ -31,60 +32,57 @@ export const metadata: Metadata = {
     "buy electronics Nigeria",
     "fashion Nigeria",
   ],
-  authors: [{ name: "EliteHub NG", url: SITE_URL }],
-  creator: "EliteHub NG",
+  authors:   [{ name: "EliteHub NG", url: SITE_URL }],
+  creator:   "EliteHub NG",
   publisher: "EliteHub NG",
   robots: {
-    index: true,
-    follow: true,
+    index:     true,
+    follow:    true,
     googleBot: { index: true, follow: true, "max-video-preview": -1, "max-image-preview": "large", "max-snippet": -1 },
   },
   openGraph: {
-    type: "website",
-    locale: "en_NG",
-    url: SITE_URL,
-    siteName: SITE_NAME,
-    title: `${SITE_NAME} — Nigeria's Trusted Marketplace`,
+    type:        "website",
+    locale:      "en_NG",
+    url:         SITE_URL,
+    siteName:    SITE_NAME,
+    title:       `${SITE_NAME} — Nigeria's Trusted Marketplace`,
     description: DEFAULT_DESCRIPTION,
     images: [
       {
-        url: `${SITE_URL}/og-image.jpg`,
-        width: 1200,
+        url:    `${SITE_URL}/og-image.jpg`,
+        width:  1200,
         height: 630,
-        alt: "EliteHub NG — Nigeria's Trusted Marketplace",
+        alt:    "EliteHub NG — Nigeria's Trusted Marketplace",
       },
     ],
   },
   twitter: {
-    card: "summary_large_image",
-    title: `${SITE_NAME} — Nigeria's Trusted Marketplace`,
+    card:        "summary_large_image",
+    title:       `${SITE_NAME} — Nigeria's Trusted Marketplace`,
     description: DEFAULT_DESCRIPTION,
-    images: [`${SITE_URL}/og-image.jpg`],
-    creator: "@elitehubng",
-    site: "@elitehubng",
+    images:      [`${SITE_URL}/og-image.jpg`],
+    creator:     "@elitehubng",
+    site:        "@elitehubng",
   },
   icons: {
-  icon: [
-    { url: "/logo.png" }, // This puts your logo in the browser tab
-    { url: "/logo.png", sizes: "32x32", type: "image/png" },
-  ],
-  apple: [{ url: "/logo.png", sizes: "180x180" }],
-  shortcut: "/logo.png",
-},
-  manifest: "/manifest.json",
-  alternates: { canonical: SITE_URL },
+    icon:     [{ url: "/logo.png" }, { url: "/logo.png", sizes: "32x32", type: "image/png" }],
+    apple:    [{ url: "/logo.png", sizes: "180x180" }],
+    shortcut: "/logo.png",
+  },
+  manifest:    "/manifest.json",
+  alternates:  { canonical: SITE_URL },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,
   },
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
+  width:        "device-width",
   initialScale: 1,
   maximumScale: 5,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#0B2E33" },
-    { media: "(prefers-color-scheme: dark)", color: "#071E22" },
+    { media: "(prefers-color-scheme: dark)",  color: "#071E22" },
   ],
 };
 
@@ -101,16 +99,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="dns-prefetch" href="https://elitehub-backend.onrender.com" />
       </head>
       <body className="min-h-screen flex flex-col antialiased">
-        {/* Mobile app download banner (dismissible) */}
-        <AppBanner />
+        <AuthProvider>
+          {/* Mobile app download banner (dismissible) */}
+          <AppBanner />
 
-        <Header />
+          <Header />
 
-        <main className="flex-1 page-enter">
-          {children}
-        </main>
+          <main className="flex-1 page-enter">
+            {children}
+          </main>
 
-        <Footer />
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );
