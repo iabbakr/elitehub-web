@@ -123,7 +123,7 @@ export default function ProductActions({ product, isOutOfStock }: ProductActions
         onClick={handleAddToCart}
         disabled={isOutOfStock}
         className={cn(
-          "flex items-center justify-center gap-2.5 py-4 rounded-2xl font-semibold text-base transition-all font-body",
+          "flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-[#144D54] font-semibold text-base transition-all font-body",
           isOutOfStock
             ? "bg-gray-100 text-gray-400 cursor-not-allowed"
             : addedAnim
@@ -145,7 +145,7 @@ export default function ProductActions({ product, isOutOfStock }: ProductActions
       {!isOutOfStock && (
         <button
           onClick={handleBuyNow}
-          className="flex items-center justify-center gap-2.5 py-4 rounded-2xl font-semibold text-base bg-gold-DEFAULT text-navy-DEFAULT hover:bg-gold-light hover:shadow-gold active:scale-[0.98] transition-all font-body"
+          className="flex items-center justify-center gap-2.5 py-4 rounded-2xl font-semibold text-base bg-gold text-navy-DEFAULT hover:bg-gold-light hover:shadow-gold active:scale-[0.98] transition-all font-body"
         >
           <Zap size={20} /> Buy Now
         </button>

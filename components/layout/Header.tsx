@@ -207,7 +207,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/auth"
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-gold-DEFAULT text-sm font-semibold font-body border border-gold-DEFAULT hover:bg-gold-DEFAULT hover:text-navy-DEFAULT transition-all duration-200"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-gold text-sm font-semibold font-body border border-gold-DEFAULT hover:bg-gold-DEFAULT hover:text-navy-DEFAULT transition-all duration-200"
               >
                 Sign In
               </Link>
