@@ -19,14 +19,12 @@ export default function ProfilePage() {
   const [pendingBalance, setPendingBalance] = useState(0);
   const [loadingWallet, setLoadingWallet] = useState(false);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.replace("/auth?next=/profile");
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Fetch wallet balance
   useEffect(() => {
     if (!user?.uid) return;
     const fetchBalance = async () => {
@@ -60,20 +58,29 @@ export default function ProfilePage() {
 
   const avatarInitial = user.name.charAt(0).toUpperCase();
 
+  // Dashboard href based on role
+  const dashboardHref = user.role === "seller" ? "/seller-dashboard" : "/service-dashboard";
+  const dashboardLabel = user.role === "seller" ? "Seller Dashboard" : "Service Dashboard";
+
   const MENU_SECTIONS = [
     {
       label: "Account",
       items: [
-        { label: "My Orders",      href: "/orders",   icon: Package,   desc: "Track your purchases" },
-        { label: "My Wishlist",    href: "/wishlist", icon: Heart,     desc: "Saved products" },
-        { label: "Wallet",         href: "/wallet",   icon: CreditCard, desc: loadingWallet ? "Loading…" : walletBalance !== null ? formatCurrency(walletBalance) : "View balance" },
+        { label: "My Orders",  href: "/orders",   icon: Package,    desc: "Track your purchases" },
+        { label: "My Wishlist",href: "/wishlist",  icon: Heart,      desc: "Saved products" },
+        { label: "Wallet",     href: "/wallet",    icon: CreditCard, desc: loadingWallet ? "Loading…" : walletBalance !== null ? formatCurrency(walletBalance) : "View balance" },
       ],
     },
     ...(user.role === "seller" || user.role === "service" ? [
       {
         label: "Business",
         items: [
-          { label: user.role === "seller" ? "Seller Dashboard" : "Service Dashboard", href: "#", icon: Briefcase, desc: user.businessName || "Manage your business" },
+          {
+            label: dashboardLabel,
+            href:  dashboardHref,
+            icon:  Briefcase,
+            desc:  user.businessName || "Manage your business",
+          },
         ],
       },
     ] : []),
@@ -97,7 +104,6 @@ export default function ProfilePage() {
             <span className="text-white/70">Profile</span>
           </nav>
           <div className="flex items-center gap-5">
-            {/* Avatar */}
             <div className="w-16 h-16 rounded-2xl bg-gold-DEFAULT text-navy-DEFAULT font-display font-bold text-2xl flex items-center justify-center shadow-[0_4px_16px_rgba(201,168,76,0.4)] shrink-0">
               {user.imageUrl ? (
                 <img src={user.imageUrl} alt={user.name} className="w-full h-full object-cover rounded-2xl" />
@@ -149,7 +155,6 @@ export default function ProfilePage() {
       <div className="section py-8 space-y-6">
         {MENU_SECTIONS.map((section) => (
           <div key={section.label}>
-            {/* Section header with gold accent */}
             <div className="flex items-center gap-2 mb-3">
               <div className="w-0.5 h-4 rounded-full bg-gold-DEFAULT" />
               <p className="text-navy-DEFAULT/50 text-xs font-bold uppercase tracking-widest font-body">
