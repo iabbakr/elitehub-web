@@ -93,13 +93,13 @@ export default function ProfilePage() {
             <span className="text-white/70">Profile</span>
           </nav>
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-gold-DEFAULT text-navy-DEFAULT font-display font-bold text-2xl flex items-center justify-center shadow-[0_4px_16px_rgba(201,168,76,0.4)] shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-gold-DEFAULT text-gold font-display font-bold text-2xl flex items-center justify-center shadow-[0_4px_16px_rgba(201,168,76,0.4)] shrink-0">
               {user.imageUrl ? <img src={user.imageUrl} alt={user.name} className="w-full h-full object-cover rounded-2xl" /> : avatarInitial}
             </div>
             <div>
               <h1 className="font-display text-2xl font-bold text-white">{user.name}</h1>
               <div className="flex items-center gap-2 mt-1">
-                <span className="px-2.5 py-0.5 rounded-full bg-gold-faint border border-gold-muted text-gold-DEFAULT text-xs font-bold font-body capitalize">{user.role}</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-gold-faint border border-gold-muted text-gold-muted text-xs font-bold font-body capitalize">{user.role}</span>
                 {(user as any).location && <span className="text-white/45 text-xs font-body">📍 {(user as any).location.city}, {(user as any).location.state}</span>}
               </div>
             </div>
@@ -112,7 +112,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-white/50 text-xs font-bold uppercase tracking-widest font-body mb-1">Wallet Balance</p>
-              <p className="font-display font-bold text-2xl text-gold-DEFAULT">{loadingWallet ? "—" : walletBalance !== null ? formatCurrency(walletBalance) : "—"}</p>
+              <p className="font-display font-bold text-2xl text-white">{loadingWallet ? "—" : walletBalance !== null ? formatCurrency(walletBalance) : "—"}</p>
               {pendingBalance > 0 && <p className="text-white/40 text-xs font-body mt-0.5">+ {formatCurrency(pendingBalance)} pending</p>}
             </div>
             <div className="flex flex-col items-end gap-3">

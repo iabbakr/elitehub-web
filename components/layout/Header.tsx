@@ -159,11 +159,11 @@ export default function Header() {
                   {user.imageUrl ? (
                     <img src={user.imageUrl} alt={user.name} className="w-6 h-6 rounded-full object-cover" />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-gold-DEFAULT text-navy-DEFAULT text-xs font-bold flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-gold-DEFAULT text-gold-muted text-xs font-bold flex items-center justify-center">
                       {avatarInitial}
                     </div>
                   )}
-                  <span className="text-gold-DEFAULT text-xs font-bold font-body max-w-[80px] truncate">
+                  <span className="text-white text-xs font-bold font-body max-w-[80px] truncate">
                     {user.name.split(" ")[0]}
                   </span>
                   <ChevronDown size={12} className={cn("text-gold-DEFAULT transition-transform", userMenuOpen && "rotate-180")} />
@@ -207,7 +207,7 @@ export default function Header() {
             ) : (
               <Link
                 href="/auth"
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-gold text-sm font-semibold font-body border border-gold-DEFAULT hover:bg-gold-DEFAULT hover:text-navy-DEFAULT transition-all duration-200"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-navy text-sm font-semibold font-body bg-gold border border-gold-muted hover:bg-gold-muted hover:text-white transition-all duration-200"
               >
                 Sign In
               </Link>
@@ -305,7 +305,7 @@ export default function Header() {
                 </button>
               ) : (
                 <div className="flex gap-2">
-                  <Link href="/auth" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-3.5 rounded-xl border border-gold-muted text-gold-DEFAULT font-semibold text-sm font-body">
+                  <Link href="/auth" onClick={() => setMobileOpen(false)} className="flex-1 text-center py-3.5 rounded-xl border border-gold-muted text-gold font-semibold text-sm font-body hover:border-gold">
                     Sign In
                   </Link>
                   <a href="#download" onClick={() => setMobileOpen(false)} className="flex-1 btn-gold text-center py-3.5 rounded-xl font-semibold text-sm">

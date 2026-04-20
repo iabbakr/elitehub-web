@@ -267,7 +267,7 @@ export default function AuthPage() {
       <div className="relative w-full max-w-md z-10">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-white/10 border border-gold-muted flex items-center justify-center mb-3 shadow-[0_0_24px_rgba(201,168,76,0.2)]">
+          <div className="w-16 h-16 rounded-2xl bg-white border border-gold-muted flex items-center justify-center mb-3 shadow-[0_0_24px_rgba(201,168,76,0.2)]">
             <Image src="/logo.png" alt="EliteHub NG" width={44} height={44} className="object-contain rounded-lg" />
           </div>
           <p className="font-display font-bold text-white text-xl tracking-tight">
