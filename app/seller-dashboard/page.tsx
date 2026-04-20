@@ -316,22 +316,22 @@ export default function SellerDashboardPage() {
           </div>
         )}
 
-        {/* Add product CTA */}
-        <div className="bg-[#0B2E33] rounded-2xl p-5 border border-[rgba(201,168,76,0.2)] flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.35)] flex items-center justify-center shrink-0">
-            <Plus size={20} className="text-gold-DEFAULT" />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-white text-sm font-body">Add New Product</p>
-            <p className="text-white/50 text-xs font-body">Product listings are managed via the app</p>
-          </div>
-          <button
-            onClick={() => setGated("seller_dashboard")}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gold-DEFAULT text-navy-DEFAULT text-xs font-bold font-body hover:bg-gold-light transition-all"
-          >
-            Open App <ArrowRight size={12} />
-          </button>
-        </div>
+        {/* Updated Add product CTA */}
+<div className="bg-[#0B2E33] rounded-2xl p-5 border border-[rgba(201,168,76,0.2)] flex items-center gap-4">
+  <div className="w-11 h-11 rounded-xl bg-[rgba(201,168,76,0.15)] border border-[rgba(201,168,76,0.35)] flex items-center justify-center shrink-0">
+    <Plus size={20} className="text-gold-DEFAULT" />
+  </div>
+  <div className="flex-1">
+    <p className="font-bold text-white text-sm font-body">Add New Product</p>
+    <p className="text-white/50 text-xs font-body">List products directly from your browser</p>
+  </div>
+  <Link
+    href="/seller-dashboard/add-product"
+    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gold-DEFAULT text-navy-DEFAULT text-xs font-bold font-body hover:bg-gold-light transition-all"
+  >
+    Add Product <ArrowRight size={12} />
+  </Link>
+</div>
 
         {/* Products */}
         <div>
