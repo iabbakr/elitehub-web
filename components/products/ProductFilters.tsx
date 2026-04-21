@@ -1,29 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
-import { SlidersHorizontal, ChevronDown, X } from "lucide-react";
+import { useCallback, useEffect } from "react";
+import { useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCategory } from "@/lib/products";
+import { useConfigStore, getAllStates } from "@/store/config-store";
 
-const CATEGORIES = [
-  "Phones_Tablets", "Laptops_Computers", "TV_Audio_Gaming", "Cameras_Optics",
-  "Womens_Fashion", "Mens_Fashion", "Babies_Kids", "Beauty_Personal_Care",
-  "Home_Appliances", "Furniture", "Home_Decor", "Kitchen_Dining",
-  "Fruits_Vegetables", "Meat_Fish_Poultry", "Rice_Beans_Grains", "Beverages",
-  "Packaged_Snacks_Condiments", "Health_Medical", "Vehicles_Cars",
-  "Commercial_Heavy_Duty", "Motorcycles_Powersports", "Auto_Parts_Care",
-  "Real_Estate", "Industrial_Business", "Sports_Hobbies", "Garden_Outdoor",
-  "Pets_Animals", "Other",
-];
-
-const NIGERIAN_STATES = [
-  "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno",
-  "Cross River","Delta","Ebonyi","Edo","Ekiti","Enugu","FCT","Gombe","Imo",
-  "Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa",
-  "Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba",
-  "Yobe","Zamfara",
-];
+// ── Sort options (static — no API needed) ─────────────────────────────────────
 
 const SORT_OPTIONS = [
   { value: "newest",     label: "Newest First" },
@@ -32,11 +17,23 @@ const SORT_OPTIONS = [
   { value: "popular",    label: "Most Popular" },
 ];
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function ProductFilters() {
   const router = useRouter();
   const sp = useSearchParams();
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // ── Config store (categories + locations from API, falling back to local) ──
+  const { sellerCategories, locations, isLoaded, fetchConfig } = useConfigStore();
+
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
+
+  const stateNames = getAllStates(locations);
+
+  // ── URL param helpers ──────────────────────────────────────────────────────
   const update = useCallback((key: string, value: string | null) => {
     const params = new URLSearchParams(sp.toString());
     if (value) {
@@ -44,7 +41,7 @@ export default function ProductFilters() {
     } else {
       params.delete(key);
     }
-    params.delete("cursor"); // reset pagination on filter change
+    params.delete("cursor");
     router.push(`/products?${params.toString()}`, { scroll: false });
   }, [router, sp]);
 
@@ -56,6 +53,7 @@ export default function ProductFilters() {
   const activeCount = ["category", "state", "condition", "minPrice", "maxPrice", "sort"]
     .filter((k) => sp.has(k)).length;
 
+  // ── Filter panel (shared between desktop sidebar + mobile sheet) ───────────
   const FilterContent = () => (
     <div className="space-y-6">
       {/* Sort */}
@@ -72,7 +70,7 @@ export default function ProductFilters() {
         </select>
       </div>
 
-      {/* Category */}
+      {/* Category — dynamic from config store */}
       <div>
         <label className="block text-xs font-bold text-navy-DEFAULT/60 uppercase tracking-widest mb-2 font-body">Category</label>
         <select
@@ -81,13 +79,15 @@ export default function ProductFilters() {
           className="input text-sm py-2"
         >
           <option value="">All Categories</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{formatCategory(c)}</option>
+          {sellerCategories.map((c) => (
+            <option key={c.name} value={c.name}>
+              {c.label || formatCategory(c.name)}
+            </option>
           ))}
         </select>
       </div>
 
-      {/* State */}
+      {/* State — dynamic from config store */}
       <div>
         <label className="block text-xs font-bold text-navy-DEFAULT/60 uppercase tracking-widest mb-2 font-body">Location</label>
         <select
@@ -96,7 +96,7 @@ export default function ProductFilters() {
           className="input text-sm py-2"
         >
           <option value="">All States</option>
-          {NIGERIAN_STATES.map((s) => (
+          {stateNames.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
@@ -145,7 +145,7 @@ export default function ProductFilters() {
         </div>
       </div>
 
-      {/* Clear */}
+      {/* Clear all */}
       {activeCount > 0 && (
         <button
           onClick={clearAll}

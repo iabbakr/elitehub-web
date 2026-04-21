@@ -4,40 +4,56 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 export interface WebCartItem {
-  id:               string;  // productId (or productId-color)
-  productId:        string;
-  name:             string;
-  price:            number;
-  discount?:        number;
-  quantity:         number;
-  imageUrl:         string;
-  sellerId:         string;
+  id:                  string;  // productId (or productId-color)
+  productId:           string;
+  name:                string;
+  price:               number;
+  discount?:           number;
+  quantity:            number;
+  imageUrl:            string;
+  sellerId:            string;
   sellerBusinessName?: string;
-  stock:            number;
-  location:         { state: string; city: string; area: string };
-  deliveryOptions?: {
+  stock:               number;
+  location:            { state: string; city: string; area: string };
+  deliveryOptions?:    {
     withinState:  number;
     outsideState: number;
     allowsPickup: boolean;
   };
-  selectedColor?:   string;
+  selectedColor?: string;
+  // ── Wholesale (ported from mobile useCartStore) ───────────────────────────
+  wholesale?: {
+    enabled: boolean;
+    minQty?: number;
+    price?:  number;
+  };
 }
 
 interface CartState {
   items: WebCartItem[];
 
   addItem:        (item: WebCartItem) => void;
-  removeItem:     (itemId: string)    => void;
+  removeItem:     (itemId: string) => void;
   updateQuantity: (itemId: string, qty: number) => void;
-  clearCart:      ()                  => void;
+  clearCart:      () => void;
 
-  getSubtotal:    ()                  => number;
-  getTotalItems:  ()                  => number;
-  isInCart:       (productId: string, color?: string) => boolean;
-  getItemQty:     (productId: string, color?: string) => number;
+  getSubtotal:   () => number;
+  getTotalItems: () => number;
+  isInCart:      (productId: string, color?: string) => boolean;
+  getItemQty:    (productId: string, color?: string) => number;
 }
 
-function effectivePrice(item: WebCartItem) {
+// ── Wholesale-aware effective unit price (mirrors mobile's getEffectiveUnitPrice) ──
+function effectivePrice(item: WebCartItem): number {
+  const ws = item.wholesale;
+  if (
+    ws?.enabled &&
+    ws.minQty != null &&
+    ws.price  != null &&
+    item.quantity >= ws.minQty
+  ) {
+    return ws.price;
+  }
   return item.discount ? item.price * (1 - item.discount / 100) : item.price;
 }
 
@@ -76,8 +92,12 @@ export const useCartStore = create<CartState>()(
 
       clearCart: () => set({ items: [] }),
 
+      // Uses wholesale-aware effectivePrice — same logic as mobile
       getSubtotal: () =>
-        get().items.reduce((sum, i) => sum + effectivePrice(i) * i.quantity, 0),
+        get().items.reduce(
+          (sum, i) => sum + effectivePrice(i) * i.quantity,
+          0
+        ),
 
       getTotalItems: () =>
         get().items.reduce((sum, i) => sum + i.quantity, 0),
@@ -97,9 +117,11 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name:    "elitehub-web-cart",
+      name: "elitehub-web-cart",
       storage: createJSONStorage(() =>
-        typeof window !== "undefined" ? localStorage : { getItem: () => null, setItem: () => {}, removeItem: () => {} }
+        typeof window !== "undefined"
+          ? localStorage
+          : { getItem: () => null, setItem: () => {}, removeItem: () => {} }
       ),
     }
   )

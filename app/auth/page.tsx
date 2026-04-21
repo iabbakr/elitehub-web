@@ -5,9 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Check, Loader2, Mail } from "lucide-react";
 import { useAuth, SignUpPayload } from "@/contexts/AuthContext";
-import { SELLER_CATEGORIES, SERVICE_CATEGORIES } from "@/lib/categories";
-import { NIGERIAN_STATES, NIGERIAN_STATE_NAMES } from "@/lib/nigeria-locations";
 import { cn } from "@/lib/utils";
+import {
+  useConfigStore,
+  getAllStates,
+  getCities,
+  getAreas,
+} from "@/store/config-store";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -74,9 +78,7 @@ function StepDots({ total, current }: { total: number; current: number }) {
           key={i}
           className={cn(
             "rounded-full transition-all duration-300",
-            i < current
-              ? "bg-gold-DEFAULT"
-              : "bg-white/20",
+            i < current ? "bg-gold-DEFAULT" : "bg-white/20",
             i === current - 1 ? "w-6 h-2" : "w-2 h-2"
           )}
         />
@@ -90,6 +92,10 @@ export default function AuthPage() {
   const router      = useRouter();
   const params      = useSearchParams();
   const { signIn, signUp, isLoading, error, clearError, isAuthenticated } = useAuth();
+
+  // ── Config store (categories + locations from API / local fallback) ────────
+  const { sellerCategories, serviceCategories, locations, fetchConfig } = useConfigStore();
+  useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
   const [mode, setMode]   = useState<"signin" | "signup">(
     params.get("mode") === "signup" ? "signup" : "signin"
@@ -111,8 +117,10 @@ export default function AuthPage() {
   const [sellerCats,   setSellerCats]   = useState<string[]>([]);
   const [serviceCat,   setServiceCat]   = useState("");
 
+  // Location — now full 3-level like mobile
   const [stateVal, setStateVal] = useState("");
   const [cityVal,  setCityVal]  = useState("");
+  const [areaVal,  setAreaVal]  = useState("");
 
   const [suEmail,        setSuEmail]        = useState("");
   const [otpCode,        setOtpCode]        = useState("");
@@ -133,6 +141,11 @@ export default function AuthPage() {
 
   const TOTAL_STEPS = 6;
 
+  // ── Derived location data ──────────────────────────────────────────────────
+  const stateNames = getAllStates(locations);
+  const cities     = getCities(locations, stateVal);
+  const areas      = getAreas(locations, stateVal, cityVal);
+
   // Redirect if already signed in
   useEffect(() => {
     if (isAuthenticated) {
@@ -142,8 +155,6 @@ export default function AuthPage() {
   }, [isAuthenticated, router, params]);
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
-
-  const cities = stateVal ? (NIGERIAN_STATES[stateVal] || []) : [];
 
   const startTimer = (s = 60) => {
     setResendTimer(s);
@@ -186,7 +197,7 @@ export default function AuthPage() {
     finally { setVerifyingOtp(false); }
   };
 
-  // ── Step validation ──────────────────────────────────────────────────────
+  // ── Step validation ────────────────────────────────────────────────────────
   const validate = (): string => {
     if (mode === "signin") return "";
     switch (step) {
@@ -195,13 +206,13 @@ export default function AuthPage() {
         if (role === "seller"  && sellerCats.length === 0) return "Select at least one category.";
         if (role === "service" && !serviceCat)             return "Select your service type.";
         return "";
-      case 4: return stateVal ? "" : "Select your state.";
+      case 4: return stateVal ? "" : "Please select your state.";
       case 5: return emailVerified ? "" : "Please verify your email first.";
       case 6:
-        if (!suPassword)                         return "Enter a password.";
-        if (suPassword !== suConfirm)            return "Passwords do not match.";
-        if (passwordStrength(suPassword).score < 2) return "Password is too weak.";
-        if (!termsOk)                            return "Accept terms to continue.";
+        if (!suPassword)                              return "Enter a password.";
+        if (suPassword !== suConfirm)                 return "Passwords do not match.";
+        if (passwordStrength(suPassword).score < 2)   return "Password is too weak.";
+        if (!termsOk)                                 return "Accept terms to continue.";
         return "";
       default: return "";
     }
@@ -211,7 +222,6 @@ export default function AuthPage() {
     const err = validate();
     if (err) { setLocalError(err); return; }
     setLocalError("");
-    if (step === 3 && role === "service") { setStep(s => s + 1); return; }
     setStep(s => s + 1);
   };
 
@@ -222,7 +232,7 @@ export default function AuthPage() {
     clearError(); setLocalError("");
   };
 
-  // ── Final submit ─────────────────────────────────────────────────────────
+  // ── Final submit ──────────────────────────────────────────────────────────
   const handleSignIn = async () => {
     clearError(); setLocalError("");
     if (!email || !password) { setLocalError("Email and password are required."); return; }
@@ -240,7 +250,13 @@ export default function AuthPage() {
       phone:    phone.trim() || undefined,
       gender,
       referralCode: refCode.trim() || undefined,
-      location: stateVal ? { state: stateVal, city: cityVal || cities[0] || stateVal, area: cityVal || stateVal } : undefined,
+      location: stateVal
+        ? {
+            state: stateVal,
+            city:  cityVal || (cities[0] ?? stateVal),
+            area:  areaVal || cityVal || (cities[0] ?? stateVal),
+          }
+        : undefined,
       sellerCategories: role === "seller"  ? sellerCats : undefined,
       serviceCategory:  role === "service" ? serviceCat : undefined,
       interests:        role === "buyer"   ? sellerCats : undefined,
@@ -251,7 +267,7 @@ export default function AuthPage() {
   const displayError = error || localError;
   const strength     = passwordStrength(suPassword);
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#071E22] flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Background decorative elements */}
@@ -300,18 +316,15 @@ export default function AuthPage() {
             ))}
           </div>
 
-          {/* ─ SIGN IN ──────────────────────────────────────────────────── */}
+          {/* ─ SIGN IN ────────────────────────────────────────────────────── */}
           {mode === "signin" && (
             <div className="space-y-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Email</p>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
-                  placeholder="name@example.com"
-                  autoComplete="email"
+                  placeholder="name@example.com" autoComplete="email"
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                 />
               </div>
@@ -319,12 +332,9 @@ export default function AuthPage() {
                 <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Password</p>
                 <div className="relative">
                   <input
-                    type={showPw ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    type={showPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSignIn()}
-                    placeholder="Your password"
-                    autoComplete="current-password"
+                    placeholder="Your password" autoComplete="current-password"
                     className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/15 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                   />
                   <button onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors">
@@ -333,18 +343,13 @@ export default function AuthPage() {
                 </div>
               </div>
               <div className="flex justify-end">
-                <a href="/forgot-password" className="text-gold-DEFAULT text-xs hover:underline font-body">
-                  Forgot Password?
-                </a>
+                <a href="/forgot-password" className="text-gold-DEFAULT text-xs hover:underline font-body">Forgot Password?</a>
               </div>
               {displayError && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2.5 text-red-400 text-sm font-body">
-                  {displayError}
-                </div>
+                <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-2.5 text-red-400 text-sm font-body">{displayError}</div>
               )}
               <button
-                onClick={handleSignIn}
-                disabled={isLoading}
+                onClick={handleSignIn} disabled={isLoading}
                 className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#144D54] border border-gold-muted text-white font-bold text-sm hover:bg-[#1a5f68] transition-all disabled:opacity-50 font-body"
               >
                 {isLoading ? <Loader2 size={18} className="animate-spin" /> : <>Sign In <ArrowRight size={15} className="text-gold-DEFAULT" /></>}
@@ -352,7 +357,7 @@ export default function AuthPage() {
             </div>
           )}
 
-          {/* ─ SIGN UP ──────────────────────────────────────────────────── */}
+          {/* ─ SIGN UP ────────────────────────────────────────────────────── */}
           {mode === "signup" && (
             <div>
               {/* Step label */}
@@ -374,9 +379,9 @@ export default function AuthPage() {
               {step === 1 && (
                 <div className="space-y-3">
                   {[
-                    { r: "buyer",   label: "Buyer",           desc: "Browse & purchase from verified sellers",     emoji: "🛍️" },
-                    { r: "seller",  label: "Seller",          desc: "List products & reach buyers nationwide",     emoji: "🏪" },
-                    { r: "service", label: "Service Provider",desc: "Offer professional services near you",        emoji: "🔧" },
+                    { r: "buyer",   label: "Buyer",            desc: "Browse & purchase from verified sellers",  emoji: "🛍️" },
+                    { r: "seller",  label: "Seller",           desc: "List products & reach buyers nationwide",  emoji: "🏪" },
+                    { r: "service", label: "Service Provider", desc: "Offer professional services near you",     emoji: "🔧" },
                   ].map((item) => (
                     <button
                       key={item.r}
@@ -410,18 +415,15 @@ export default function AuthPage() {
               {step === 2 && (
                 <div className="space-y-4">
                   {[
-                    { label: "Full Name *", ph: "e.g. Amina Yusuf", val: name, set: setName, type: "text", auto: "name" },
-                    { label: "Phone (Optional)", ph: "0801 234 5678", val: phone, set: setPhone, type: "tel", auto: "tel" },
-                    { label: "Referral Code", ph: "Optional", val: refCode, set: setRefCode, type: "text", auto: "off" },
+                    { label: "Full Name *", ph: "e.g. Amina Yusuf",   val: name,    set: setName,    type: "text", auto: "name" },
+                    { label: "Phone (Optional)", ph: "0801 234 5678", val: phone,   set: setPhone,   type: "tel",  auto: "tel"  },
+                    { label: "Referral Code",  ph: "Optional",        val: refCode, set: setRefCode, type: "text", auto: "off"  },
                   ].map((f) => (
                     <div key={f.label}>
                       <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">{f.label}</p>
                       <input
-                        type={f.type}
-                        autoComplete={f.auto}
-                        value={f.val}
-                        onChange={(e) => f.set(e.target.value)}
-                        placeholder={f.ph}
+                        type={f.type} autoComplete={f.auto} value={f.val}
+                        onChange={(e) => f.set(e.target.value)} placeholder={f.ph}
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                       />
                     </div>
@@ -431,8 +433,7 @@ export default function AuthPage() {
                     <div className="flex gap-2">
                       {(["male", "female", "other"] as const).map((g) => (
                         <button
-                          key={g}
-                          onClick={() => setGender(g)}
+                          key={g} onClick={() => setGender(g)}
                           className={cn(
                             "flex-1 py-2.5 rounded-xl border-2 text-sm capitalize font-semibold transition-all font-body",
                             gender === g
@@ -448,16 +449,16 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {/* STEP 3 — Categories / Interests */}
+              {/* STEP 3 — Categories / Interests (dynamic from config store) */}
               {step === 3 && (
                 <div>
                   <p className="text-white/50 text-xs mb-3 font-body">
-                    {role === "buyer" ? "Optional — helps us personalise your feed" :
-                     role === "seller" ? `Select up to 5 (${sellerCats.length}/5)` :
+                    {role === "buyer"   ? "Optional — helps us personalise your feed" :
+                     role === "seller"  ? `Select up to 5 (${sellerCats.length}/5)` :
                      "Tap your primary service type"}
                   </p>
                   <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto pr-1">
-                    {(role === "service" ? SERVICE_CATEGORIES : SELLER_CATEGORIES).map((cat) => {
+                    {(role === "service" ? serviceCategories : sellerCategories).map((cat) => {
                       const isSelected =
                         role === "service"
                           ? serviceCat === cat.name
@@ -488,7 +489,7 @@ export default function AuthPage() {
                           )}
                         >
                           <span>{cat.icon}</span>
-                          <span>{cat.label}</span>
+                          <span>{cat.label || cat.name.replace(/_/g, " ")}</span>
                         </button>
                       );
                     })}
@@ -496,28 +497,38 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {/* STEP 4 — Location */}
+              {/* STEP 4 — Location (state → city → area, mirrors mobile) */}
               {step === 4 && (
                 <div className="space-y-4">
+                  {/* State */}
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">State *</p>
                     <select
                       value={stateVal}
-                      onChange={(e) => { setStateVal(e.target.value); setCityVal(""); }}
+                      onChange={(e) => {
+                        setStateVal(e.target.value);
+                        setCityVal("");
+                        setAreaVal("");
+                      }}
                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                     >
                       <option value="" className="bg-[#0B2E33]">Select your state…</option>
-                      {NIGERIAN_STATE_NAMES.map((s) => (
+                      {stateNames.map((s) => (
                         <option key={s} value={s} className="bg-[#0B2E33]">{s}</option>
                       ))}
                     </select>
                   </div>
-                  {stateVal && (
+
+                  {/* City */}
+                  {stateVal && cities.length > 0 && (
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">City / Area</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">City / LGA</p>
                       <select
                         value={cityVal}
-                        onChange={(e) => setCityVal(e.target.value)}
+                        onChange={(e) => {
+                          setCityVal(e.target.value);
+                          setAreaVal("");
+                        }}
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                       >
                         <option value="" className="bg-[#0B2E33]">Select city…</option>
@@ -527,11 +538,33 @@ export default function AuthPage() {
                       </select>
                     </div>
                   )}
+
+                  {/* Area */}
+                  {stateVal && cityVal && areas.length > 0 && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Area / Neighbourhood</p>
+                      <select
+                        value={areaVal}
+                        onChange={(e) => setAreaVal(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
+                      >
+                        <option value="" className="bg-[#0B2E33]">Select area…</option>
+                        {areas.map((a) => (
+                          <option key={a} value={a} className="bg-[#0B2E33]">{a}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Confirmation badge */}
                   {stateVal && (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gold-faint border border-gold-muted">
                       <Check size={14} className="text-gold-DEFAULT" />
                       <p className="text-gold-DEFAULT text-xs font-semibold font-body">
-                        Location: {cityVal || cities[0] || stateVal}, {stateVal}
+                        Location:{" "}
+                        {[areaVal, cityVal || cities[0], stateVal]
+                          .filter(Boolean)
+                          .join(", ")}
                       </p>
                     </div>
                   )}
@@ -550,20 +583,17 @@ export default function AuthPage() {
                       )}>
                         <Mail size={15} className="text-white/40 shrink-0" />
                         <input
-                          type="email"
-                          value={suEmail}
+                          type="email" value={suEmail}
                           onChange={(e) => {
                             setSuEmail(e.target.value);
                             if (otpSent) { setOtpSent(false); setOtpCode(""); setResendTimer(0); }
                           }}
-                          placeholder="name@example.com"
-                          disabled={emailVerified}
+                          placeholder="name@example.com" disabled={emailVerified}
                           className="flex-1 py-3 bg-transparent text-white placeholder:text-white/30 text-sm outline-none font-body"
                         />
                         {!emailVerified && (
                           <button
-                            onClick={sendOtp}
-                            disabled={sendingOtp || resendTimer > 0}
+                            onClick={sendOtp} disabled={sendingOtp || resendTimer > 0}
                             className="shrink-0 px-3 py-1.5 rounded-full border border-gold-muted bg-gold-faint text-gold-DEFAULT text-xs font-bold disabled:opacity-50 font-body"
                           >
                             {sendingOtp ? <Loader2 size={12} className="animate-spin" /> : resendTimer > 0 ? `${resendTimer}s` : otpSent ? "Resend" : "Send Code"}
@@ -581,14 +611,11 @@ export default function AuthPage() {
 
                   {otpSent && !emailVerified && (
                     <div className="p-4 rounded-2xl border border-gold-muted bg-gold-faint/30">
-                      <p className="text-white/60 text-xs text-center mb-1 font-body">
-                        Enter the 6-digit code sent to
-                      </p>
+                      <p className="text-white/60 text-xs text-center mb-1 font-body">Enter the 6-digit code sent to</p>
                       <p className="text-gold-DEFAULT font-bold text-xs text-center mb-1 font-body">{suEmail}</p>
                       <OtpInput value={otpCode} onChange={setOtpCode} />
                       <button
-                        onClick={verifyOtp}
-                        disabled={otpCode.length < 6 || verifyingOtp}
+                        onClick={verifyOtp} disabled={otpCode.length < 6 || verifyingOtp}
                         className="w-full py-3 rounded-xl bg-[#144D54] border border-gold-muted text-white font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2 font-body"
                       >
                         {verifyingOtp ? <Loader2 size={16} className="animate-spin" /> : <><Check size={16} /> Confirm Code</>}
@@ -618,11 +645,9 @@ export default function AuthPage() {
                     <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Password *</p>
                     <div className="relative">
                       <input
-                        type={showSuPw ? "text" : "password"}
-                        value={suPassword}
+                        type={showSuPw ? "text" : "password"} value={suPassword}
                         onChange={(e) => setSuPassword(e.target.value)}
-                        placeholder="Strong password"
-                        autoComplete="new-password"
+                        placeholder="Strong password" autoComplete="new-password"
                         className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/15 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                       />
                       <button onClick={() => setShowSuPw(!showSuPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors">
@@ -634,8 +659,7 @@ export default function AuthPage() {
                         <div className="flex gap-1">
                           {[1,2,3,4].map((i) => (
                             <div
-                              key={i}
-                              className="flex-1 h-1.5 rounded-full transition-all"
+                              key={i} className="flex-1 h-1.5 rounded-full transition-all"
                               style={{ backgroundColor: i <= strength.score ? strength.color : "rgba(255,255,255,0.1)" }}
                             />
                           ))}
@@ -649,11 +673,9 @@ export default function AuthPage() {
                     <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Confirm Password *</p>
                     <div className="relative">
                       <input
-                        type={showSuConf ? "text" : "password"}
-                        value={suConfirm}
+                        type={showSuConf ? "text" : "password"} value={suConfirm}
                         onChange={(e) => setSuConfirm(e.target.value)}
-                        placeholder="Repeat password"
-                        autoComplete="new-password"
+                        placeholder="Repeat password" autoComplete="new-password"
                         className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/15 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                       />
                       <button onClick={() => setShowSuConf(!showSuConf)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors">
@@ -691,7 +713,6 @@ export default function AuthPage() {
 
               {/* Navigation buttons */}
               <div className="mt-6 space-y-3">
-                {/* Continue / Create */}
                 {step > 1 && (
                   <>
                     {step < TOTAL_STEPS ? (
@@ -706,15 +727,12 @@ export default function AuthPage() {
                       </button>
                     ) : (
                       <button
-                        onClick={handleSignUp}
-                        disabled={isLoading}
+                        onClick={handleSignUp} disabled={isLoading}
                         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#144D54] border border-gold-muted text-white font-bold text-sm hover:bg-[#1a5f68] transition-all disabled:opacity-50 font-body"
                       >
                         {isLoading ? <Loader2 size={18} className="animate-spin" /> : <>Create Account <ArrowRight size={15} className="text-gold-DEFAULT" /></>}
                       </button>
                     )}
-
-                    {/* Back */}
                     <button
                       onClick={back}
                       className="w-full flex items-center justify-center gap-2 py-2.5 text-white/40 text-sm hover:text-white/70 transition-colors font-body"
