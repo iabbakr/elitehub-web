@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, ArrowRight, Loader2, CheckCircle, CreditCard, ArrowDownLeft } from "lucide-react";
+import { X, ArrowRight, Loader2, CheckCircle, ArrowDownLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -21,10 +21,10 @@ type Step = "amount" | "processing" | "verifying" | "success";
 export default function DepositModal({ onClose, onSuccess }: DepositModalProps) {
   const { getToken } = useAuth();
 
-  const [amount, setAmount]     = useState("");
-  const [step, setStep]         = useState<Step>("amount");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [amount, setAmount]   = useState("");
+  const [step, setStep]       = useState<Step>("amount");
+  const [error, setError]     = useState("");
+  const [loading, setLoading] = useState(false);
 
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const popupRef   = useRef<Window | null>(null);
@@ -43,6 +43,36 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
     };
   }, [onClose]);
 
+  // Listen for the callback page broadcasting success via postMessage or storage
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === "PAYSTACK_SUCCESS" && e.data?.reference) {
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        popupRef.current?.close();
+        setStep("success");
+        setTimeout(() => onSuccess(e.data.reference), 1800);
+      }
+    };
+    window.addEventListener("message", onMessage);
+
+    // Also listen via localStorage for browsers that block cross-origin postMessage
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "paystack_success" && e.newValue) {
+        const { reference } = JSON.parse(e.newValue);
+        localStorage.removeItem("paystack_success");
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        popupRef.current?.close();
+        setStep("success");
+        setTimeout(() => onSuccess(reference), 1800);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [onSuccess]);
+
   const amountNum = parseFloat(amount.replace(/,/g, "")) || 0;
   const isValid   = amountNum >= 100;
 
@@ -52,44 +82,45 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
     setLoading(true);
     try {
       const token = await getToken();
-      const res   = await fetch(`${API_BASE}/wallet/initialize-deposit`, {
+
+      // callback_url → our frontend page that catches the Paystack redirect
+      // This MUST be sent to the backend so it forwards it to Paystack during initialization
+      const callbackUrl = `${window.location.origin}/wallet/payment-callback`;
+
+      const res = await fetch(`${API_BASE}/wallet/initialize-deposit`, {
         method:  "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ amount: amountNum }),
+        body:    JSON.stringify({ amount: amountNum, callback_url: callbackUrl }),
       });
       const data = await res.json();
       if (!data.success || !data.authorization_url) {
         throw new Error(data.message || "Failed to initialize payment");
       }
 
-      // Open Paystack in popup
-      const popup = window.open(data.authorization_url, "paystack", "width=520,height=700,left=200,top=100");
-      if (!popup) {
-        // Popup blocked — open in new tab
-        window.open(data.authorization_url, "_blank");
-      }
+      const reference = data.reference as string;
+
+      // Try to open in popup (desktop). On mobile this usually opens as a new tab.
+      const popup = window.open(
+        data.authorization_url,
+        "paystack",
+        "width=520,height=700,left=200,top=100"
+      );
       popupRef.current = popup;
       setStep("processing");
 
-      const reference = data.reference as string;
-
-      // Poll for payment completion
+      // Poll backend every 5 s to catch payment even if postMessage fails
       let attempts = 0;
       pollingRef.current = setInterval(async () => {
         attempts++;
-
-        // If popup was closed by user, stop polling after a few more checks
         const popupClosed = !popup || popup.closed;
-
         try {
-          const token2 = await getToken();
-          const verRes = await fetch(`${API_BASE}/wallet/verify-deposit`, {
+          const token2  = await getToken();
+          const verRes  = await fetch(`${API_BASE}/wallet/verify-deposit`, {
             method:  "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token2}` },
             body:    JSON.stringify({ reference }),
           });
           const verData = await verRes.json();
-
           if (verData.success) {
             clearInterval(pollingRef.current!);
             popup?.close();
@@ -99,7 +130,7 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
           }
         } catch { /* keep polling */ }
 
-        // Stop after 3 min or if popup closed + enough checks
+        // Stop after 3 min, or after popup closed + a few extra checks
         if (attempts >= 36 || (popupClosed && attempts > 4)) {
           clearInterval(pollingRef.current!);
           setStep("amount");
@@ -121,7 +152,10 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
       aria-labelledby="deposit-title"
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-[#071E22]/80 backdrop-blur-sm" onClick={step === "amount" ? onClose : undefined} />
+      <div
+        className="absolute inset-0 bg-[#071E22]/80 backdrop-blur-sm"
+        onClick={step === "amount" ? onClose : undefined}
+      />
 
       {/* Sheet */}
       <div className="relative w-full sm:max-w-md sm:mx-4 bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_-8px_40px_rgba(11,46,51,0.3)] sm:shadow-[0_32px_80px_rgba(11,46,51,0.4)] max-h-[92dvh] sm:max-h-[90dvh] flex flex-col">
@@ -132,7 +166,11 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
           <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/20 sm:hidden" />
 
           {step === "amount" && (
-            <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all" aria-label="Close">
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 text-white/60 hover:text-white hover:bg-white/20 transition-all"
+              aria-label="Close"
+            >
               <X size={17} />
             </button>
           )}
@@ -235,7 +273,11 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
                 </p>
               </div>
               <button
-                onClick={() => { setStep("amount"); setLoading(false); if (pollingRef.current) clearInterval(pollingRef.current); }}
+                onClick={() => {
+                  setStep("amount");
+                  setLoading(false);
+                  if (pollingRef.current) clearInterval(pollingRef.current);
+                }}
                 className="text-navy-DEFAULT/40 text-sm font-body hover:text-navy-DEFAULT transition-colors"
               >
                 Cancel
@@ -255,6 +297,13 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
                   ₦{amountNum.toLocaleString()} has been added to your wallet.
                 </p>
               </div>
+              {/* Explicit button in case auto-close doesn't fire */}
+              <button
+                onClick={onClose}
+                className="mt-2 px-8 py-3 rounded-2xl bg-[#0B2E33] text-white font-bold text-sm font-body border border-[rgba(201,168,76,0.3)] hover:bg-[#144D54] transition-all"
+              >
+                Back to Wallet
+              </button>
             </div>
           )}
         </div>

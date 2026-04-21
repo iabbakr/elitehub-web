@@ -133,13 +133,13 @@ export default function OrdersPage() {
       const data = await res.json();
       if (data.success) {
         setOrders(data.orders || []);
-        // Update count for this tab
         setCounts((c) => ({ ...c, [status]: data.orders?.length ?? 0 }));
       } else throw new Error(data.message);
     } catch (err: any) {
       setError(err?.message || "Failed to load orders");
     } finally {
-      setFetching(false); }
+      setFetching(false);
+    }
   };
 
   useEffect(() => {
@@ -185,26 +185,33 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Tabs — mirrors mobile OrdersScreen tabs */}
+      {/* ── Tabs ── scrollable on mobile, no wrap/overflow ── */}
       <div className="bg-white border-b border-[rgba(11,46,51,0.08)]">
+        {/*
+          -mx-0 + px-4/section keeps alignment consistent.
+          overflow-x-auto + scrollbar-none lets tabs slide on small screens.
+          min-w-max on the inner flex stops them from shrinking/wrapping.
+        */}
         <div className="section">
-          <div className="flex gap-2 py-3">
-            {TABS.map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all font-body border ${
-                  tab === t.key
-                    ? "bg-gold-faint border-gold-muted text-gold-DEFAULT"
-                    : "bg-white border-[rgba(11,46,51,0.1)] text-navy-DEFAULT/60 hover:border-gold-muted"
-                }`}
-              >
-                {t.label}
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-gold-DEFAULT text-navy-DEFAULT" : "bg-navy-DEFAULT/10 text-navy-DEFAULT/50"}`}>
-                  {counts[t.key]}
-                </span>
-              </button>
-            ))}
+          <div className="overflow-x-auto scrollbar-none -mx-4 sm:mx-0 px-4 sm:px-0">
+            <div className="flex gap-2 py-3 min-w-max sm:min-w-0">
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setTab(t.key)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all font-body border whitespace-nowrap ${
+                    tab === t.key
+                      ? "bg-gold-faint border-gold-muted text-gold-DEFAULT"
+                      : "bg-white border-[rgba(11,46,51,0.1)] text-navy-DEFAULT/60 hover:border-gold-muted"
+                  }`}
+                >
+                  {t.label}
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${tab === t.key ? "bg-gold-DEFAULT text-navy-DEFAULT" : "bg-navy-DEFAULT/10 text-navy-DEFAULT/50"}`}>
+                    {counts[t.key]}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
