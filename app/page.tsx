@@ -1,11 +1,16 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, Shield, Zap, Star, TrendingUp, Package, CheckCircle } from "lucide-react";
 import { fetchFeaturedProducts } from "@/lib/products";
 import { formatCurrency } from "@/lib/products";
 import ProductGrid from "@/components/products/ProductGrid";
 import { JsonLdWebSite } from "@/components/seo/JsonLd";
 import type { Metadata } from "next";
+
+// ── Build config ──────────────────────────────────────────────────────────────
+// Use ISR: build once, regenerate in the background every hour.
+// This prevents build timeouts caused by slow Render cold-starts while still
+// keeping the page fresh in production.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "EliteHub NG — Nigeria's Trusted Marketplace",
@@ -37,7 +42,16 @@ const TRUST_POINTS = [
 ];
 
 export default async function HomePage() {
-  const featuredProducts = await fetchFeaturedProducts(20);
+  // FIX: Wrap in try/catch so a slow or down backend never breaks the build.
+  // During ISR re-generation a failure just keeps the previously cached page.
+  let featuredProducts: Awaited<ReturnType<typeof fetchFeaturedProducts>> = [];
+  try {
+    featuredProducts = await fetchFeaturedProducts(20);
+  } catch {
+    // Backend unreachable (e.g. Render cold-start timeout) — render page
+    // without featured products rather than failing the whole build.
+    featuredProducts = [];
+  }
 
   return (
     <>
@@ -49,7 +63,6 @@ export default async function HomePage() {
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-gold-faint blur-3xl translate-x-1/2 -translate-y-1/4" />
           <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-white/5 blur-2xl -translate-x-1/3 translate-y-1/3" />
-          {/* Dot grid */}
           <div
             className="absolute inset-0 opacity-[0.07]"
             style={{
@@ -62,7 +75,7 @@ export default async function HomePage() {
         <div className="section relative py-20 md:py-28 grid md:grid-cols-2 gap-12 items-center">
           {/* Left copy */}
           <div className="text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-faint border border-gold-muted text-white  text-sm font-semibold mb-6 font-body">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gold-faint border border-gold-muted text-white text-sm font-semibold mb-6 font-body">
               <TrendingUp size={14} />
               Nigeria&apos;s #1 Trusted Marketplace
             </div>
@@ -114,7 +127,6 @@ export default async function HomePage() {
           {/* Right — floating product cards mockup */}
           <div className="hidden md:flex items-center justify-center relative h-96">
             <div className="absolute inset-0 flex items-center justify-center">
-              {/* Main card */}
               <div className="relative bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-5 w-64 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
                 <div className="w-full aspect-square bg-white/15 rounded-2xl mb-3 flex items-center justify-center text-5xl">
                   📱
@@ -130,7 +142,6 @@ export default async function HomePage() {
                 </div>
               </div>
 
-              {/* Floating badges */}
               <div className="absolute top-4 right-4 bg-emerald-400 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg font-body">
                 ✅ Verified Seller
               </div>
@@ -145,7 +156,6 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* Bottom wave */}
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-[#F8F7F4]" style={{ clipPath: "ellipse(60% 100% at 50% 100%)" }} />
       </section>
 
@@ -189,7 +199,19 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <ProductGrid products={featuredProducts} priorityCount={8} />
+          {featuredProducts.length > 0 ? (
+            <ProductGrid products={featuredProducts} priorityCount={8} />
+          ) : (
+            // Graceful fallback when backend is unavailable at build time
+            <div className="text-center py-16">
+              <p className="text-navy-DEFAULT/40 text-sm font-body">
+                Browse our full catalogue below.
+              </p>
+              <Link href="/products" className="btn-gold mt-4 inline-flex px-6 py-3 rounded-2xl text-sm">
+                View All Products <ArrowRight size={14} />
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
@@ -287,7 +309,6 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          {/* Steps */}
           <div className="grid sm:grid-cols-3 gap-6 mt-14 text-left">
             {[
               { n: "01", title: "Download the App",    desc: "Free on iOS & Android. Create your seller account in 2 minutes." },
