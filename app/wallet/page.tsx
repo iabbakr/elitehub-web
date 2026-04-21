@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   CreditCard, ArrowUpRight, ArrowDownLeft, RefreshCw,
@@ -11,8 +11,8 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { formatCurrency } from "@/lib/products";
 import AppGateModal from "@/components/ui/AppGateModal";
-import DepositModal from "@/components/modals/DepositModal"; // Ensure path is correct
-import WithdrawModal from "@/components/modals/WithdrawModal"; // Ensure path is correct
+import DepositModal from "@/components/modals/DepositModal";
+import WithdrawModal from "@/components/modals/WithdrawModal";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/utils";
 
 const API_BASE =
@@ -123,25 +123,30 @@ function TransactionRow({ txn }: { txn: Transaction }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Inner page (needs useSearchParams, wrapped in Suspense below) ─────────────
 
-export default function WalletPage() {
+function WalletPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isAuthenticated, isLoading, getToken } = useAuth();
 
-  const [balance, setBalance]           = useState(0);
-  const [pending, setPending]           = useState(0);
-  const [txns, setTxns]                 = useState<Transaction[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [refreshing, setRefreshing]     = useState(false);
-  const [showBal, setShowBal]           = useState(true);
-  const [filter, setFilter]             = useState<FilterTab>("all");
-  const [gate, setGate]                 = useState(false);
-  const [error, setError]               = useState("");
+  const [balance, setBalance]             = useState(0);
+  const [pending, setPending]             = useState(0);
+  const [txns, setTxns]                   = useState<Transaction[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [refreshing, setRefreshing]       = useState(false);
+  const [showBal, setShowBal]             = useState(true);
+  const [filter, setFilter]               = useState<FilterTab>("all");
+  const [gate, setGate]                   = useState(false);
+  const [error, setError]                 = useState("");
+  const [depositBanner, setDepositBanner] = useState(false);
 
-  // New Modal States
   const [showDeposit, setShowDeposit]   = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+
+  // We keep a ref to track re-fetch retries after deposit so we don't need it
+  // in the dependency array of the retry effect.
+  const retryTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Auth guard
   useEffect(() => {
@@ -187,6 +192,62 @@ export default function WalletPage() {
     if (user?.uid) fetchData();
   }, [user?.uid, fetchData]);
 
+  /**
+   * FIX: Handle ?deposited=1 redirect from /wallet/payment-callback.
+   * This is the mobile same-tab flow where Paystack redirected back to our
+   * callback page which then forwarded here.
+   *
+   * We show a success banner and fire multiple fetchData() calls with
+   * increasing delays so we beat the backend's Redis balance cache TTL.
+   */
+  useEffect(() => {
+    const deposited = searchParams.get("deposited");
+    if (deposited === "1" && user?.uid) {
+      // Show banner
+      setDepositBanner(true);
+      // Clear the query params without a navigation (replace URL cleanly)
+      router.replace("/wallet");
+
+      // Retry fetches: immediate → 2 s → 5 s → 10 s
+      // The first call might hit stale Redis cache; later calls will see the
+      // invalidated (fresh) balance after creditWallet() runs on the backend.
+      const delays = [0, 2000, 5000, 10000];
+      delays.forEach(ms => {
+        const t = setTimeout(() => fetchData(), ms);
+        retryTimers.current.push(t);
+      });
+
+      // Auto-hide banner after 6 s
+      const bannerTimer = setTimeout(() => setDepositBanner(false), 6000);
+      retryTimers.current.push(bannerTimer);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user?.uid]);
+
+  // Clean up retry timers on unmount
+  useEffect(() => {
+    return () => { retryTimers.current.forEach(clearTimeout); };
+  }, []);
+
+  /**
+   * FIX: Called by DepositModal.onSuccess (popup / postMessage flow).
+   * Same staggered retry pattern to beat the balance cache.
+   */
+  const handleDepositSuccess = useCallback(() => {
+    setShowDeposit(false);
+    setDepositBanner(true);
+
+    // Staggered retries: immediate → 2 s → 5 s → 10 s
+    const delays = [0, 2000, 5000, 10000];
+    delays.forEach(ms => {
+      const t = setTimeout(() => fetchData(), ms);
+      retryTimers.current.push(t);
+    });
+
+    const bannerTimer = setTimeout(() => setDepositBanner(false), 6000);
+    retryTimers.current.push(bannerTimer);
+  }, [fetchData]);
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-[#F8F7F4] flex items-center justify-center">
@@ -215,6 +276,22 @@ export default function WalletPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F7F4]">
+
+      {/* ── Deposit success banner ──────────────────────────────────── */}
+      {depositBanner && (
+        <div className="fixed top-0 inset-x-0 z-[400] flex justify-center pt-4 px-4 pointer-events-none">
+          <div className="bg-emerald-500 text-white rounded-2xl px-5 py-3.5 shadow-xl flex items-center gap-3 pointer-events-auto animate-in slide-in-from-top duration-300">
+            <CheckCircle size={18} className="shrink-0" />
+            <p className="text-sm font-bold font-body">Deposit successful! Your balance has been updated.</p>
+            <button
+              onClick={() => setDepositBanner(false)}
+              className="ml-2 text-white/70 hover:text-white transition-colors text-xs"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Page header / balance card ────────────────────────────────── */}
       <div className="bg-[#0B2E33]">
@@ -270,7 +347,7 @@ export default function WalletPage() {
                 </div>
               )}
 
-              {/* Action buttons — Updated to trigger web modals */}
+              {/* Action buttons */}
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowDeposit(true)}
@@ -301,7 +378,7 @@ export default function WalletPage() {
           <div key={card.label} className="bg-white rounded-2xl p-4 border border-[rgba(11,46,51,0.06)] shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: card.bg }}>
-                {card.label === "Total In" ? <ArrowDownLeft size={13} style={{ color: card.color }} /> : <ArrowUpRight  size={13} style={{ color: card.color }} />}
+                {card.label === "Total In" ? <ArrowDownLeft size={13} style={{ color: card.color }} /> : <ArrowUpRight size={13} style={{ color: card.color }} />}
               </div>
               <span className="text-xs text-navy-DEFAULT/50 font-body">{card.label}</span>
             </div>
@@ -381,25 +458,26 @@ export default function WalletPage() {
       </div>
 
       {/* ── Modals ────────────────────────────────────────────────────── */}
-      
+
       {showDeposit && (
-        <DepositModal 
-          onClose={() => setShowDeposit(false)} 
-          onSuccess={(ref) => {
-            setShowDeposit(false);
-            fetchData();
-          }} 
-        />
-      )}
-      
-      {showWithdraw && (
-        <WithdrawModal 
-          balance={balance}
-          onClose={() => setShowWithdraw(false)} 
+        <DepositModal
+          onClose={() => setShowDeposit(false)}
+          onSuccess={handleDepositSuccess}
         />
       )}
 
-      {/* App redirect for other gated features */}
+      {showWithdraw && (
+        <WithdrawModal
+          balance={balance}
+          onClose={() => {
+            setShowWithdraw(false);
+            // Refresh after withdrawal too
+            fetchData();
+            setTimeout(() => fetchData(), 3000);
+          }}
+        />
+      )}
+
       {gate && (
         <AppGateModal
           feature="wallet"
@@ -407,5 +485,19 @@ export default function WalletPage() {
         />
       )}
     </div>
+  );
+}
+
+// ── Default export wrapped in Suspense (required for useSearchParams) ─────────
+
+export default function WalletPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8F7F4] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-gold-DEFAULT border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <WalletPageInner />
+    </Suspense>
   );
 }

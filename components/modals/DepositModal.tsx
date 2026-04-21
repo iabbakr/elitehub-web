@@ -49,8 +49,7 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
       if (e.data?.type === "PAYSTACK_SUCCESS" && e.data?.reference) {
         if (pollingRef.current) clearInterval(pollingRef.current);
         popupRef.current?.close();
-        setStep("success");
-        setTimeout(() => onSuccess(e.data.reference), 1800);
+        handleDepositSuccess(e.data.reference);
       }
     };
     window.addEventListener("message", onMessage);
@@ -62,8 +61,7 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
         localStorage.removeItem("paystack_success");
         if (pollingRef.current) clearInterval(pollingRef.current);
         popupRef.current?.close();
-        setStep("success");
-        setTimeout(() => onSuccess(reference), 1800);
+        handleDepositSuccess(reference);
       }
     };
     window.addEventListener("storage", onStorage);
@@ -71,7 +69,21 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
       window.removeEventListener("message", onMessage);
       window.removeEventListener("storage", onStorage);
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onSuccess]);
+
+  /**
+   * FIX: After Paystack confirms success we still need to wait a moment for
+   * the backend to credit the wallet and for Redis to invalidate the balance
+   * cache.  We show "success" immediately for UX, but only call onSuccess()
+   * (which triggers fetchData in the parent) after a short delay so the
+   * refreshed balance endpoint returns the updated figure.
+   */
+  const handleDepositSuccess = (reference: string) => {
+    setStep("success");
+    // Wait 2 s for backend cache to invalidate, then notify parent
+    setTimeout(() => onSuccess(reference), 2000);
+  };
 
   const amountNum = parseFloat(amount.replace(/,/g, "")) || 0;
   const isValid   = amountNum >= 100;
@@ -83,8 +95,6 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
     try {
       const token = await getToken();
 
-      // callback_url → our frontend page that catches the Paystack redirect
-      // This MUST be sent to the backend so it forwards it to Paystack during initialization
       const callbackUrl = `${window.location.origin}/wallet/payment-callback`;
 
       const res = await fetch(`${API_BASE}/wallet/initialize-deposit`, {
@@ -99,7 +109,6 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
 
       const reference = data.reference as string;
 
-      // Try to open in popup (desktop). On mobile this usually opens as a new tab.
       const popup = window.open(
         data.authorization_url,
         "paystack",
@@ -124,8 +133,7 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
           if (verData.success) {
             clearInterval(pollingRef.current!);
             popup?.close();
-            setStep("success");
-            setTimeout(() => onSuccess(reference), 1800);
+            handleDepositSuccess(reference);
             return;
           }
         } catch { /* keep polling */ }
@@ -138,8 +146,9 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
           setLoading(false);
         }
       }, 5000);
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(message);
       setLoading(false);
     }
   };
@@ -297,7 +306,6 @@ export default function DepositModal({ onClose, onSuccess }: DepositModalProps) 
                   ₦{amountNum.toLocaleString()} has been added to your wallet.
                 </p>
               </div>
-              {/* Explicit button in case auto-close doesn't fire */}
               <button
                 onClick={onClose}
                 className="mt-2 px-8 py-3 rounded-2xl bg-[#0B2E33] text-white font-bold text-sm font-body border border-[rgba(201,168,76,0.3)] hover:bg-[#144D54] transition-all"
