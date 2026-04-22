@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Eye, EyeOff, ArrowRight, ArrowLeft, Check, Loader2, Mail } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ArrowLeft, Check, Loader2, Mail, Clock } from "lucide-react";
 import { useAuth, SignUpPayload } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -93,7 +93,7 @@ export default function AuthPage() {
   const params      = useSearchParams();
   const { signIn, signUp, isLoading, error, clearError, isAuthenticated } = useAuth();
 
-  // ── Config store (categories + locations from API / local fallback) ────────
+  // ── Config store ───────────────────────────────────────────────────────────
   const { sellerCategories, serviceCategories, locations, fetchConfig } = useConfigStore();
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
@@ -117,7 +117,6 @@ export default function AuthPage() {
   const [sellerCats,   setSellerCats]   = useState<string[]>([]);
   const [serviceCat,   setServiceCat]   = useState("");
 
-  // Location — now full 3-level like mobile
   const [stateVal, setStateVal] = useState("");
   const [cityVal,  setCityVal]  = useState("");
   const [areaVal,  setAreaVal]  = useState("");
@@ -145,6 +144,10 @@ export default function AuthPage() {
   const stateNames = getAllStates(locations);
   const cities     = getCities(locations, stateVal);
   const areas      = getAreas(locations, stateVal, cityVal);
+
+  // ── Read URL params ────────────────────────────────────────────────────────
+  // reason=inactivity → show idle-logout notice on the sign-in form
+  const inactivityLogout = params.get("reason") === "inactivity";
 
   // Redirect if already signed in
   useEffect(() => {
@@ -319,6 +322,19 @@ export default function AuthPage() {
           {/* ─ SIGN IN ────────────────────────────────────────────────────── */}
           {mode === "signin" && (
             <div className="space-y-4">
+
+              {/* ✅ Inactivity logout notice — only shown when redirected here
+                  by the 5-min idle timer. Disappears once the user switches
+                  to sign-up or clears the URL param by signing in. */}
+              {inactivityLogout && (
+                <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
+                  <Clock size={16} className="text-amber-400 shrink-0" />
+                  <p className="text-amber-300 text-sm font-body">
+                    You were signed out after 5 minutes of inactivity.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Email</p>
                 <input
@@ -449,7 +465,7 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {/* STEP 3 — Categories / Interests (dynamic from config store) */}
+              {/* STEP 3 — Categories / Interests */}
               {step === 3 && (
                 <div>
                   <p className="text-white/50 text-xs mb-3 font-body">
@@ -497,10 +513,9 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {/* STEP 4 — Location (state → city → area, mirrors mobile) */}
+              {/* STEP 4 — Location */}
               {step === 4 && (
                 <div className="space-y-4">
-                  {/* State */}
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">State *</p>
                     <select
@@ -519,7 +534,6 @@ export default function AuthPage() {
                     </select>
                   </div>
 
-                  {/* City */}
                   {stateVal && cities.length > 0 && (
                     <div>
                       <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">City / LGA</p>
@@ -539,7 +553,6 @@ export default function AuthPage() {
                     </div>
                   )}
 
-                  {/* Area */}
                   {stateVal && cityVal && areas.length > 0 && (
                     <div>
                       <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Area / Neighbourhood</p>
@@ -556,7 +569,6 @@ export default function AuthPage() {
                     </div>
                   )}
 
-                  {/* Confirmation badge */}
                   {stateVal && (
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gold-faint border border-gold-muted">
                       <Check size={14} className="text-gold-DEFAULT" />
@@ -635,12 +647,10 @@ export default function AuthPage() {
               {/* STEP 6 — Password */}
               {step === 6 && (
                 <div className="space-y-4">
-                  {/* Email (locked) */}
                   <div className="px-4 py-3 rounded-xl bg-white/5 border border-emerald-400/40 flex items-center gap-2">
                     <Check size={14} className="text-emerald-400 shrink-0" />
                     <span className="text-white/70 text-sm font-body">{suEmail}</span>
                   </div>
-                  {/* Password */}
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Password *</p>
                     <div className="relative">
@@ -668,7 +678,6 @@ export default function AuthPage() {
                       </div>
                     )}
                   </div>
-                  {/* Confirm */}
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">Confirm Password *</p>
                     <div className="relative">
@@ -683,7 +692,6 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </div>
-                  {/* Terms */}
                   <div className="flex items-start gap-3">
                     <button
                       onClick={() => setTermsOk(!termsOk)}

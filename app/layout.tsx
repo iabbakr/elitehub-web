@@ -5,6 +5,7 @@ import Footer from "@/components/layout/Footer";
 import AppBanner from "@/components/layout/AppBanner";
 import { JsonLdOrganization } from "@/components/seo/JsonLd";
 import { AuthProvider } from "@/contexts/AuthContext";
+import InactivityGuard from "@/components/useInactivityLogout";
 
 // ── SEO Metadata ──────────────────────────────────────────────────────────────
 
@@ -100,6 +101,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen flex flex-col antialiased">
         <AuthProvider>
+          {/*
+           * InactivityGuard — web-only, renders nothing in the DOM.
+           * Starts a 5-min idle timer when a user is logged in and redirects
+           * to /auth?reason=inactivity on timeout. The mobile app never
+           * imports this file so there is zero impact on React Native.
+           */}
+          <InactivityGuard />
+
           {/* Mobile app download banner (dismissible) */}
           <AppBanner />
 
