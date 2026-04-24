@@ -6,12 +6,13 @@ import Image from "next/image";
 import { Eye, EyeOff, ArrowRight, ArrowLeft, Check, Loader2, Mail, Clock } from "lucide-react";
 import { useAuth, SignUpPayload } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import {
-  useConfigStore,
-  getAllStates,
-  getCities,
-  getAreas,
-} from "@/store/config-store";
+import { getAllStates, getCities, getAreas } from "@/store/config-store";
+
+// ── Import categories directly from local file (mirrors mobile Categories.ts) ──
+import { SELLER_CATEGORIES, SERVICE_CATEGORIES } from "@/lib/categories";
+
+// ── Location data (from config-store helpers, keep as-is) ────────────────────
+import { useConfigStore } from "@/store/config-store";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -87,14 +88,46 @@ function StepDots({ total, current }: { total: number; current: number }) {
   );
 }
 
+// ── Category Chip — matches mobile CategoryChip exactly ──────────────────────
+function CategoryChip({
+  icon,
+  label,
+  isSelected,
+  isDisabled,
+  onPress,
+}: {
+  icon: string;
+  label: string;
+  isSelected: boolean;
+  isDisabled: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      disabled={isDisabled}
+      onClick={onPress}
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold transition-all font-body",
+        isSelected
+          ? "border-gold-DEFAULT bg-gold-faint text-gold-DEFAULT"
+          : "border-white/15 bg-white/5 text-white/65 hover:border-white/30",
+        isDisabled && "opacity-30 cursor-not-allowed"
+      )}
+    >
+      <span className="text-sm leading-none">{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
 // ── Main Auth Page ────────────────────────────────────────────────────────────
 export default function AuthPage() {
   const router      = useRouter();
   const params      = useSearchParams();
   const { signIn, signUp, isLoading, error, clearError, isAuthenticated } = useAuth();
 
-  // ── Config store ───────────────────────────────────────────────────────────
-  const { sellerCategories, serviceCategories, locations, fetchConfig } = useConfigStore();
+  // ── Location data only from config store ─────────────────────────────────
+  const { locations, fetchConfig } = useConfigStore();
   useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
   const [mode, setMode]   = useState<"signin" | "signup">(
@@ -114,8 +147,11 @@ export default function AuthPage() {
   const [gender,  setGender]  = useState<"male" | "female" | "other">("male");
   const [refCode, setRefCode] = useState("");
 
-  const [sellerCats,   setSellerCats]   = useState<string[]>([]);
-  const [serviceCat,   setServiceCat]   = useState("");
+  // ── Categories — exact same logic as mobile ───────────────────────────────
+  // seller/buyer: multi-select up to 5 from SELLER_CATEGORIES
+  // service: single-select from SERVICE_CATEGORIES, auto-advances on tap
+  const [sellerCats,  setSellerCats]  = useState<string[]>([]);
+  const [serviceCat,  setServiceCat]  = useState("");
 
   const [stateVal, setStateVal] = useState("");
   const [cityVal,  setCityVal]  = useState("");
@@ -140,13 +176,12 @@ export default function AuthPage() {
 
   const TOTAL_STEPS = 6;
 
-  // ── Derived location data ──────────────────────────────────────────────────
+  // ── Derived location data ─────────────────────────────────────────────────
   const stateNames = getAllStates(locations);
   const cities     = getCities(locations, stateVal);
   const areas      = getAreas(locations, stateVal, cityVal);
 
-  // ── Read URL params ────────────────────────────────────────────────────────
-  // reason=inactivity → show idle-logout notice on the sign-in form
+  // ── Inactivity logout notice ──────────────────────────────────────────────
   const inactivityLogout = params.get("reason") === "inactivity";
 
   // Redirect if already signed in
@@ -200,22 +235,23 @@ export default function AuthPage() {
     finally { setVerifyingOtp(false); }
   };
 
-  // ── Step validation ────────────────────────────────────────────────────────
+  // ── Step validation — mirrors mobile getStepValidation exactly ────────────
   const validate = (): string => {
     if (mode === "signin") return "";
     switch (step) {
-      case 2: return name.trim() ? "" : "Full name is required.";
+      case 2: return name.trim() ? "" : "Please enter your full name to continue.";
       case 3:
-        if (role === "seller"  && sellerCats.length === 0) return "Select at least one category.";
-        if (role === "service" && !serviceCat)             return "Select your service type.";
+        if (role === "buyer")   return "";                                          // optional
+        if (role === "service" && !serviceCat) return "Please select your service type to continue.";
+        if (role === "seller"  && sellerCats.length === 0) return "Please select at least one category to continue.";
         return "";
-      case 4: return stateVal ? "" : "Please select your state.";
-      case 5: return emailVerified ? "" : "Please verify your email first.";
+      case 4: return stateVal ? "" : "Please select your location to continue.";
+      case 5: return emailVerified ? "" : "Please verify your email before continuing.";
       case 6:
-        if (!suPassword)                              return "Enter a password.";
-        if (suPassword !== suConfirm)                 return "Passwords do not match.";
-        if (passwordStrength(suPassword).score < 2)   return "Password is too weak.";
-        if (!termsOk)                                 return "Accept terms to continue.";
+        if (!suPassword)                             return "Enter a password.";
+        if (suPassword !== suConfirm)                return "Passwords do not match.";
+        if (passwordStrength(suPassword).score < 2)  return "Password is too weak.";
+        if (!termsOk)                                return "Accept terms to continue.";
         return "";
       default: return "";
     }
@@ -234,6 +270,18 @@ export default function AuthPage() {
     setMode(m); setStep(1);
     clearError(); setLocalError("");
   };
+
+  // ── Toggle seller category (mirrors mobile toggleSellerCategory) ──────────
+  const toggleSellerCategory = (catName: string) => {
+    if (sellerCats.includes(catName)) {
+      setSellerCats(prev => prev.filter(c => c !== catName));
+    } else if (sellerCats.length < 5) {
+      setSellerCats(prev => [...prev, catName]);
+    }
+    // silently ignore when limit reached (mobile uses Alert, web just blocks)
+  };
+
+  const isLimitReached = role !== "service" && sellerCats.length >= 5;
 
   // ── Final submit ──────────────────────────────────────────────────────────
   const handleSignIn = async () => {
@@ -269,6 +317,18 @@ export default function AuthPage() {
 
   const displayError = error || localError;
   const strength     = passwordStrength(suPassword);
+
+  // ── Step 3 heading — mirrors mobile STEP_META exactly ────────────────────
+  const step3Title =
+    role === "buyer"   ? "Your interests" :
+    role === "seller"  ? "Your categories" :
+                         "Your service type";
+
+  // ── Step 3 hint — mirrors mobile miniLabel ────────────────────────────────
+  const step3Hint =
+    role === "buyer"   ? "Optional — helps us personalise your feed" :
+    role === "seller"  ? `Select up to 5 (${sellerCats.length}/5)` :
+                         "Tap your primary service type";
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -322,10 +382,6 @@ export default function AuthPage() {
           {/* ─ SIGN IN ────────────────────────────────────────────────────── */}
           {mode === "signin" && (
             <div className="space-y-4">
-
-              {/* ✅ Inactivity logout notice — only shown when redirected here
-                  by the 5-min idle timer. Disappears once the user switches
-                  to sign-up or clears the URL param by signing in. */}
               {inactivityLogout && (
                 <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3">
                   <Clock size={16} className="text-amber-400 shrink-0" />
@@ -383,7 +439,7 @@ export default function AuthPage() {
                   {[
                     "Who are you?",
                     "About you",
-                    role === "buyer" ? "Your interests" : role === "seller" ? "Your categories" : "Your service type",
+                    step3Title,
                     "Your location",
                     "Verify your email",
                     "Create your password",
@@ -439,7 +495,8 @@ export default function AuthPage() {
                       <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">{f.label}</p>
                       <input
                         type={f.type} autoComplete={f.auto} value={f.val}
-                        onChange={(e) => f.set(e.target.value)} placeholder={f.ph}
+                        onChange={(e) => { f.set(e.target.value); if (localError) setLocalError(""); }}
+                        placeholder={f.ph}
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
                       />
                     </div>
@@ -465,48 +522,56 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {/* STEP 3 — Categories / Interests */}
+              {/* STEP 3 — Categories / Interests
+                  ✅ Now uses local SELLER_CATEGORIES / SERVICE_CATEGORIES
+                     exactly like the mobile app does with SELLERS_CATEGORIES /
+                     SERVICE_PROVIDER_CATEGORIES from constants/Categories.ts   */}
               {step === 3 && (
                 <div>
-                  <p className="text-white/50 text-xs mb-3 font-body">
-                    {role === "buyer"   ? "Optional — helps us personalise your feed" :
-                     role === "seller"  ? `Select up to 5 (${sellerCats.length}/5)` :
-                     "Tap your primary service type"}
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-3 font-body">
+                    {role === "buyer"
+                      ? "INTERESTS (OPTIONAL)"
+                      : role === "seller"
+                      ? `CATEGORIES * (${sellerCats.length}/5)`
+                      : "SERVICE TYPE *"}
                   </p>
+                  <p className="text-white/50 text-xs mb-3 font-body">{step3Hint}</p>
+
                   <div className="flex flex-wrap gap-2 max-h-64 overflow-y-auto pr-1">
-                    {(role === "service" ? serviceCategories : sellerCategories).map((cat) => {
+                    {(role === "service" ? SERVICE_CATEGORIES : SELLER_CATEGORIES).map((cat) => {
+                      const catName = cat.name as string;
+                      const catLabel = (cat as any).label ?? catName.replace(/_/g, " ");
+                      const catIcon  = (cat as any).icon ?? "📦";
+
                       const isSelected =
                         role === "service"
-                          ? serviceCat === cat.name
-                          : sellerCats.includes(cat.name);
+                          ? serviceCat === catName
+                          : sellerCats.includes(catName);
+
+                      // Mirror mobile: disabled when limit reached for non-service roles
                       const isDisabled =
-                        role === "seller" && sellerCats.length >= 5 && !isSelected;
+                        role !== "service" && isLimitReached && !isSelected;
 
                       return (
-                        <button
-                          key={cat.name}
-                          disabled={isDisabled}
-                          onClick={() => {
+                        <CategoryChip
+                          key={catName}
+                          icon={catIcon}
+                          label={catLabel}
+                          isSelected={isSelected}
+                          isDisabled={isDisabled}
+                          onPress={() => {
                             if (role === "service") {
-                              setServiceCat(cat.name);
+                              // ✅ Mirror mobile: setSelectedServiceCategory → handleNext (auto-advance)
+                              setServiceCat(catName);
+                              setLocalError("");
                               setTimeout(next, 150);
-                            } else if (isSelected) {
-                              setSellerCats((c) => c.filter((x) => x !== cat.name));
-                            } else if (!isDisabled) {
-                              setSellerCats((c) => [...c, cat.name]);
+                            } else {
+                              // ✅ Mirror mobile: toggleSellerCategory
+                              toggleSellerCategory(catName);
+                              if (localError) setLocalError("");
                             }
                           }}
-                          className={cn(
-                            "flex items-center gap-1.5 px-3 py-2 rounded-full border text-xs font-semibold transition-all font-body",
-                            isSelected
-                              ? "border-gold-DEFAULT bg-gold-faint text-gold-DEFAULT"
-                              : "border-white/15 bg-white/5 text-white/65 hover:border-white/30",
-                            isDisabled && "opacity-30 cursor-not-allowed"
-                          )}
-                        >
-                          <span>{cat.icon}</span>
-                          <span>{cat.label || cat.name.replace(/_/g, " ")}</span>
-                        </button>
+                        />
                       );
                     })}
                   </div>
@@ -516,23 +581,25 @@ export default function AuthPage() {
               {/* STEP 4 — Location */}
               {step === 4 && (
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-widest text-white/40 mb-1.5 font-body">State *</p>
-                    <select
-                      value={stateVal}
-                      onChange={(e) => {
-                        setStateVal(e.target.value);
-                        setCityVal("");
-                        setAreaVal("");
-                      }}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
-                    >
-                      <option value="" className="bg-[#0B2E33]">Select your state…</option>
-                      {stateNames.map((s) => (
-                        <option key={s} value={s} className="bg-[#0B2E33]">{s}</option>
-                      ))}
-                    </select>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-bold uppercase tracking-widest text-white/40 font-body">State *</p>
+                    {!stateVal && <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider font-body">Required</p>}
                   </div>
+                  <select
+                    value={stateVal}
+                    onChange={(e) => {
+                      setStateVal(e.target.value);
+                      setCityVal("");
+                      setAreaVal("");
+                      if (localError) setLocalError("");
+                    }}
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/15 text-white text-sm outline-none focus:border-gold-DEFAULT transition-all font-body"
+                  >
+                    <option value="" className="bg-[#0B2E33]">Select your state…</option>
+                    {stateNames.map((s) => (
+                      <option key={s} value={s} className="bg-[#0B2E33]">{s}</option>
+                    ))}
+                  </select>
 
                   {stateVal && cities.length > 0 && (
                     <div>
@@ -573,10 +640,8 @@ export default function AuthPage() {
                     <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gold-faint border border-gold-muted">
                       <Check size={14} className="text-gold-DEFAULT" />
                       <p className="text-gold-DEFAULT text-xs font-semibold font-body">
-                        Location:{" "}
-                        {[areaVal, cityVal || cities[0], stateVal]
-                          .filter(Boolean)
-                          .join(", ")}
+                        Location set:{" "}
+                        {[areaVal, cityVal || cities[0], stateVal].filter(Boolean).join(", ")}
                       </p>
                     </div>
                   )}
@@ -617,7 +682,7 @@ export default function AuthPage() {
 
                   {!otpSent && !emailVerified && (
                     <p className="text-white/35 text-xs text-center font-body">
-                      Enter your email above and tap "Send Code" to verify.
+                      Enter your email above and tap "Send Code" to verify before continuing.
                     </p>
                   )}
 
@@ -724,13 +789,22 @@ export default function AuthPage() {
                 {step > 1 && (
                   <>
                     {step < TOTAL_STEPS ? (
+                      // ✅ Mirror mobile: Continue button is visually dimmed when step incomplete
                       <button
                         onClick={next}
-                        className="w-full flex items-center justify-between px-6 py-4 rounded-2xl border-2 border-gold-muted text-gold-DEFAULT font-bold text-sm transition-all hover:bg-gold-faint font-body"
+                        className={cn(
+                          "w-full flex items-center justify-between px-6 py-4 rounded-2xl border-2 font-bold text-sm transition-all font-body",
+                          validate()
+                            ? "border-white/12 text-white/30 opacity-55"
+                            : "border-gold-muted text-gold-DEFAULT hover:bg-gold-faint"
+                        )}
                       >
                         Continue
-                        <div className="w-8 h-8 rounded-full bg-gold-DEFAULT flex items-center justify-center">
-                          <ArrowRight size={14} className="text-navy-DEFAULT" />
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                          validate() ? "bg-white/8" : "bg-gold-DEFAULT"
+                        )}>
+                          <ArrowRight size={14} className={validate() ? "text-white/30" : "text-navy-DEFAULT"} />
                         </div>
                       </button>
                     ) : (
